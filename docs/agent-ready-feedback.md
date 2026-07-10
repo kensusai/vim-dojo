@@ -1,6 +1,7 @@
 # agent-ready フィードバック
 
 ## 2026-07-11 | bug | agent-ready check(コマンド検出)
+
 - 状況: CLAUDE.md の開発コマンド欄に `npm run typecheck` 等を記載済みでも「not documented」と報告され続ける(AGENTS.md の `npm run test` / `npx vitest run <path>` も同様)。ドキュメントの実態と check 結果が一致しない。
 - 提案: コマンド検出を特定の見出し・書式への依存ではなく、ファイル全文からのコマンド文字列マッチにする(または期待する書式をエラーメッセージに明示する)。
 - ステータス: 未回収
