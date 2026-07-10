@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "lang": "ja",
+  "agents": ["claude", "codex"],
+  "presets": [
+    "clean-architecture",
+    "documentation",
+    "performance",
+    "refactoring",
+    "type-safety"
+  ],
+  "workflow": [
+    "project-overview",
+    "domain-understanding",
+    "architecture-design",
+    "tech-selection",
+    "db-design",
+    "ci-construction",
+    "backend-development",
+    "frontend-development",
+    "infra-construction",
+    "monitoring-design"
+  ],
+  "stacks": "auto"
+}
