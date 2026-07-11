@@ -112,6 +112,9 @@ export function PracticePlayer({
         rs.map((r, i) => (i === exerciseIndex ? attempt.medal : r)),
       );
       if (attempt.medal) playClear(attempt.medal);
+      // The buffer is judged: stop the editor from reacting to further keys
+      // while the result dialog is up (Enter belongs to the dialog button).
+      engine.blur();
       const info = { attempt, exerciseIndex, isLastExercise: isLast };
       onAttemptFinishedRef.current(info);
       setFinished(info);
@@ -124,9 +127,8 @@ export function PracticePlayer({
     const engine = createVimEngine(hostRef.current);
     engineRef.current = engine;
     const offKeys = engine.onKeystroke((key) => {
-      setKeystrokes((n) =>
-        sessionRef.current?.state() === "playing" ? n + 1 : n,
-      );
+      if (sessionRef.current?.state() !== "playing") return; // judged: freeze
+      setKeystrokes((n) => n + 1);
       setRecentKeys((keys) => [...keys.slice(-19), key]);
       setMode(engine.currentMode());
     });

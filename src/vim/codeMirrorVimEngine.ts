@@ -44,6 +44,9 @@ export interface CodeMirrorVimEngine extends VimEngine {
   sendEx(command: string): void;
   /** Give the editor keyboard focus (call when an exercise starts). */
   focus(): void;
+  /** Drop keyboard focus (call when a result dialog opens — the buffer is
+   * judged and must not react to further keys). */
+  blur(): void;
   destroy(): void;
 }
 
@@ -143,6 +146,9 @@ export function createVimEngine(parent: Element): CodeMirrorVimEngine {
     },
     focus() {
       view.focus();
+    },
+    blur() {
+      view.contentDOM.blur();
     },
     destroy() {
       view.contentDOM.removeEventListener("keydown", onDomKeydown, true);

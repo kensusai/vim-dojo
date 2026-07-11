@@ -30,6 +30,16 @@ test("boot → lesson 1 → clear → unlock → streak persists", async ({ page
     await page.waitForTimeout(300);
     await pressKeys(page, solution);
     await expect(page.getByRole("dialog")).toContainText("一本"); // gold at par
+    if (index === 0) {
+      // Regression: stray keys while the result dialog is open must not
+      // reach the judged buffer behind it (playtest bug).
+      const judged = await page.locator(".editor-host .cm-content").innerText();
+      await pressKeys(page, ["x", "j", "i"]);
+      expect(await page.locator(".editor-host .cm-content").innerText()).toBe(
+        judged,
+      );
+      await expect(page.getByRole("dialog")).toBeVisible();
+    }
     if (index < solutions.length - 1) {
       await page.getByRole("button", { name: /次のお題/ }).click();
     }
