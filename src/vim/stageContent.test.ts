@@ -9,34 +9,14 @@
  * If a par is wrong, this test fails loudly before players ever see it.
  */
 import { beforeAll, describe, expect, it } from "vitest";
+import { installCodeMirrorDomStubs } from "./cmDomStubs";
 import { commandId } from "../core/ids";
 import { unlockedCommands } from "../core/curriculum/curriculum";
 import { stages } from "../core/curriculum/stages";
 import { initialProfile } from "../core/profile";
 import { createVimEngine } from "./codeMirrorVimEngine";
 
-beforeAll(() => {
-  const zeroRect = {
-    x: 0,
-    y: 0,
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    width: 0,
-    height: 0,
-    toJSON: () => ({}),
-  } as DOMRect;
-  Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
-  Range.prototype.getBoundingClientRect = () => zeroRect;
-  if (!("ResizeObserver" in globalThis)) {
-    globalThis.ResizeObserver = class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    };
-  }
-});
+beforeAll(installCodeMirrorDomStubs);
 
 /**
  * Recorded solutions, keyed by exercise id. Insert-mode text is written with

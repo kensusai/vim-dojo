@@ -3,7 +3,7 @@
  * A lesson pays XP only the first time it is cleared; the clear record
  * itself is the "already cleared" marker, so no extra bookkeeping exists.
  * Completing a lesson is also a learning activity (streak, R8) — but that is
- * composed by the caller via completeDrillSession-style helpers to keep this
+ * composed by the caller via recordLearningActivity-style helpers to keep this
  * function about the curriculum concern only.
  */
 import type { LessonId } from "../ids";

@@ -4,15 +4,19 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { weakCommands } from "../core/analytics/weakness";
-import { applyDrillAttempt, completeDrillSession } from "../core/applyProgress";
+import {
+  applyPracticeAttempt,
+  recordLearningActivity,
+} from "../core/applyProgress";
 import { unlockedCommands } from "../core/curriculum/curriculum";
 import { stages } from "../core/curriculum/stages";
 import { generateDrill } from "../core/generation/generate";
 import type { Exercise } from "../core/practice/exercise";
-import { levelProgress } from "../core/progression/xp";
 import {
   MedalHeadline,
   PracticePlayer,
+  ResultFooter,
+  StreakChip,
   type FinishedInfo,
 } from "./PracticePlayer";
 import { useAppStore } from "./storeContext";
@@ -78,13 +82,13 @@ export function DrillScreen() {
 
   const onAttemptFinished = (info: FinishedInfo) => {
     void store.appendAttempt(info.attempt);
-    const drill = applyDrillAttempt(profileRef.current, info.attempt);
-    let next = drill.profile;
+    const practice = applyPracticeAttempt(profileRef.current, info.attempt);
+    let next = practice.profile;
     if (info.isLastExercise) {
-      next = completeDrillSession(next, info.attempt.playedAt).profile;
+      next = recordLearningActivity(next, info.attempt.playedAt).profile;
     }
     if (next !== profileRef.current) setProfile(next);
-    setLastXp(drill.xpGained);
+    setLastXp(practice.xpGained);
   };
 
   return (
@@ -133,43 +137,21 @@ function DrillResult({
   onRetry: () => void;
   onNext: () => void;
 }) {
-  const profile = useAppStore((s) => s.profile);
-  const { level, intoLevel, neededForNext } = levelProgress(profile.xp);
   return (
     <>
       <MedalHeadline attempt={info.attempt} />
       {info.isLastExercise && (
         <div className="mt-3 font-mono text-sm font-black text-matcha">
-          5本勝負、完!! 🔥{profile.streak.current}日
+          5本勝負、完!!
         </div>
       )}
-      <div className="mt-4 flex justify-center gap-3 font-mono text-sm font-extrabold">
-        {xpGained > 0 && (
-          <span className="border-2 border-ink bg-black/40 px-3 py-1 text-gold">
-            +{xpGained} XP
-          </span>
-        )}
-        <span className="border-2 border-ink bg-black/40 px-3 py-1">
-          Lv.{level} {intoLevel}/{neededForNext}
-        </span>
-      </div>
-      <div className="mt-6 flex gap-3">
-        <button
-          type="button"
-          autoFocus
-          onClick={onNext}
-          className="btn-chunky flex-1 border-b-[6px] border-shu-dark bg-shu py-3 font-black tracking-widest text-[#fff6ec]"
-        >
-          {info.isLastExercise ? "ホームへ ▶" : "次のお題 ▶"}
-        </button>
-        <button
-          type="button"
-          onClick={onRetry}
-          className="btn-chunky flex-1 border-2 border-b-[5px] border-ink-bold bg-raised py-3 font-mono text-sm font-extrabold text-cream-dim"
-        >
-          やり直す
-        </button>
-      </div>
+      <ResultFooter
+        xpGained={xpGained}
+        primaryLabel={info.isLastExercise ? "ホームへ ▶" : "次のお題 ▶"}
+        onPrimary={onNext}
+        onRetry={onRetry}
+        extraChips={info.isLastExercise ? <StreakChip /> : undefined}
+      />
     </>
   );
 }

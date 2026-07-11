@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyDrillAttempt, completeDrillSession } from "./applyProgress";
+import { applyPracticeAttempt, recordLearningActivity } from "./applyProgress";
 import { commandId, exerciseId } from "./ids";
 import { localDate } from "./localDate";
 import type { Attempt } from "./practice/attempt";
@@ -16,9 +16,9 @@ const cleared: Attempt = {
   durationMs: 5_000,
 };
 
-describe("applyDrillAttempt", () => {
+describe("applyPracticeAttempt", () => {
   it("grants XP and records the best on the first clear (R16, R4)", () => {
-    const { profile, xpGained, firstClear } = applyDrillAttempt(
+    const { profile, xpGained, firstClear } = applyPracticeAttempt(
       initialProfile,
       cleared,
     );
@@ -32,8 +32,8 @@ describe("applyDrillAttempt", () => {
   });
 
   it("pays no XP on re-clears but still improves the best (R16, R4)", () => {
-    const once = applyDrillAttempt(initialProfile, cleared).profile;
-    const { profile, xpGained } = applyDrillAttempt(once, {
+    const once = applyPracticeAttempt(initialProfile, cleared).profile;
+    const { profile, xpGained } = applyPracticeAttempt(once, {
       ...cleared,
       keystrokes: 7,
     });
@@ -43,7 +43,7 @@ describe("applyDrillAttempt", () => {
   });
 
   it("leaves the profile untouched for abandoned attempts", () => {
-    const { profile, xpGained } = applyDrillAttempt(initialProfile, {
+    const { profile, xpGained } = applyPracticeAttempt(initialProfile, {
       ...cleared,
       result: "abandoned",
       medal: null,
@@ -53,9 +53,9 @@ describe("applyDrillAttempt", () => {
   });
 });
 
-describe("completeDrillSession", () => {
+describe("recordLearningActivity", () => {
   it("counts the session as the day's learning activity (R8, R12)", () => {
-    const { profile, streak } = completeDrillSession(
+    const { profile, streak } = recordLearningActivity(
       initialProfile,
       new Date("2026-07-11T20:00:00"),
     );
@@ -67,11 +67,11 @@ describe("completeDrillSession", () => {
   });
 
   it("does not double-count two sessions on the same day (R8)", () => {
-    const first = completeDrillSession(
+    const first = recordLearningActivity(
       initialProfile,
       new Date("2026-07-11T08:00:00"),
     ).profile;
-    const { profile, streak } = completeDrillSession(
+    const { profile, streak } = recordLearningActivity(
       first,
       new Date("2026-07-11T22:00:00"),
     );
@@ -80,9 +80,9 @@ describe("completeDrillSession", () => {
   });
 });
 
-// applyDrillAttempt must not mutate its input (pure core rule)
+// applyPracticeAttempt must not mutate its input (pure core rule)
 it("does not mutate the input profile", () => {
   const before: Profile = structuredClone(initialProfile);
-  applyDrillAttempt(initialProfile, cleared);
+  applyPracticeAttempt(initialProfile, cleared);
   expect(initialProfile).toEqual(before);
 });

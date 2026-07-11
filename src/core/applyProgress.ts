@@ -11,7 +11,7 @@ import type { Profile } from "./profile";
 import { recordActivity, type StreakOutcome } from "./progression/streak";
 import { xpFor } from "./progression/xp";
 
-export interface DrillAttemptOutcome {
+export interface PracticeAttemptOutcome {
   profile: Profile;
   /** 0 unless this was the exercise's first ever clear (R16). */
   xpGained: number;
@@ -24,10 +24,10 @@ export interface DrillAttemptOutcome {
  * the "already cleared once" marker so no extra bookkeeping exists).
  * Abandoned attempts change nothing here; the caller still persists them.
  */
-export function applyDrillAttempt(
+export function applyPracticeAttempt(
   profile: Profile,
   attempt: Attempt,
-): DrillAttemptOutcome {
+): PracticeAttemptOutcome {
   if (attempt.result !== "cleared" || attempt.medal === null) {
     return { profile, xpGained: 0, firstClear: false };
   }
@@ -49,7 +49,7 @@ export function applyDrillAttempt(
   };
 }
 
-export interface DrillSessionOutcome {
+export interface LearningActivityOutcome {
   profile: Profile;
   streak: StreakOutcome;
 }
@@ -58,10 +58,10 @@ export interface DrillSessionOutcome {
  * A completed drill session is one learning activity (domain.md 用語集) —
  * this is what extends the streak (R8), dated by its completion instant (R12).
  */
-export function completeDrillSession(
+export function recordLearningActivity(
   profile: Profile,
   completedAt: Date,
-): DrillSessionOutcome {
+): LearningActivityOutcome {
   const { state, outcome } = recordActivity(
     profile.streak,
     localDateOf(completedAt),

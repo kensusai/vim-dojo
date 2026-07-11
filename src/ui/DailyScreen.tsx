@@ -7,10 +7,10 @@ import { useEffect, useRef, useState } from "react";
 import { applyDailyAttempt, resolveDailyChallenge } from "../core/daily";
 import { localDateOf } from "../core/localDate";
 import type { DailyChallengeRecord } from "../core/ports";
-import { levelProgress } from "../core/progression/xp";
 import {
   MedalHeadline,
   PracticePlayer,
+  ResultFooter,
   type FinishedInfo,
 } from "./PracticePlayer";
 import { useAppStore } from "./storeContext";
@@ -128,40 +128,19 @@ function DailyResult({
   onHome: () => void;
 }) {
   const profile = useAppStore((s) => s.profile);
-  const { level, intoLevel, neededForNext } = levelProgress(profile.xp);
   return (
     <>
       <MedalHeadline attempt={info.attempt} />
       <div className="mt-3 font-mono text-sm font-black text-matcha">
         今日の修行、納め!! 🔥{profile.streak.current}日
       </div>
-      <div className="mt-4 flex justify-center gap-3 font-mono text-sm font-extrabold">
-        {xpGained > 0 && (
-          <span className="border-2 border-ink bg-black/40 px-3 py-1 text-gold">
-            +{xpGained} XP
-          </span>
-        )}
-        <span className="border-2 border-ink bg-black/40 px-3 py-1">
-          Lv.{level} {intoLevel}/{neededForNext}
-        </span>
-      </div>
-      <div className="mt-6 flex gap-3">
-        <button
-          type="button"
-          autoFocus
-          onClick={onHome}
-          className="btn-chunky flex-1 border-b-[6px] border-shu-dark bg-shu py-3 font-black tracking-widest text-[#fff6ec]"
-        >
-          ホームへ ▶
-        </button>
-        <button
-          type="button"
-          onClick={onRetry}
-          className="btn-chunky flex-1 border-2 border-b-[5px] border-ink-bold bg-raised py-3 font-mono text-sm font-extrabold text-cream-dim"
-        >
-          ベスト更新を狙う
-        </button>
-      </div>
+      <ResultFooter
+        xpGained={xpGained}
+        primaryLabel="ホームへ ▶"
+        onPrimary={onHome}
+        onRetry={onRetry}
+        retryLabel="ベスト更新を狙う"
+      />
     </>
   );
 }

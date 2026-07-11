@@ -21,6 +21,7 @@ import {
   type PracticeSession,
 } from "../core/practice/session";
 import type { VimMode } from "../core/ports";
+import { levelProgress } from "../core/progression/xp";
 import { useAppStore } from "./storeContext";
 import {
   createVimEngine,
@@ -287,6 +288,72 @@ export function PracticePlayer({
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Shared result-modal footer: XP/level chips and the primary/retry buttons.
+ * The three screens (lesson/daily/drill) only differ in their celebration
+ * line and primary action — pass those in; everything else lives here.
+ */
+export function ResultFooter({
+  xpGained,
+  primaryLabel,
+  onPrimary,
+  onRetry,
+  retryLabel = "やり直す",
+  extraChips,
+}: {
+  xpGained: number;
+  primaryLabel: string;
+  onPrimary: () => void;
+  onRetry: () => void;
+  retryLabel?: string;
+  extraChips?: ReactNode;
+}) {
+  const profile = useAppStore((s) => s.profile);
+  const { level, intoLevel, neededForNext } = levelProgress(profile.xp);
+  return (
+    <>
+      <div className="mt-4 flex justify-center gap-3 font-mono text-sm font-extrabold">
+        {xpGained > 0 && (
+          <span className="border-2 border-ink bg-black/40 px-3 py-1 text-gold">
+            +{xpGained} XP
+          </span>
+        )}
+        <span className="border-2 border-ink bg-black/40 px-3 py-1">
+          Lv.{level} {intoLevel}/{neededForNext}
+        </span>
+        {extraChips}
+      </div>
+      <div className="mt-6 flex gap-3">
+        <button
+          type="button"
+          autoFocus
+          onClick={onPrimary}
+          className="btn-chunky flex-1 border-b-[6px] border-shu-dark bg-shu py-3 font-black tracking-widest text-[#fff6ec]"
+        >
+          {primaryLabel}
+        </button>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="btn-chunky flex-1 border-2 border-b-[5px] border-ink-bold bg-raised py-3 font-mono text-sm font-extrabold text-cream-dim"
+        >
+          {retryLabel}
+        </button>
+      </div>
+    </>
+  );
+}
+
+/** Streak chip for the result footer (shown when the day's activity landed). */
+export function StreakChip() {
+  const profile = useAppStore((s) => s.profile);
+  return (
+    <span className="border-2 border-ink bg-black/40 px-3 py-1 text-shu">
+      🔥 {profile.streak.current}日
+    </span>
   );
 }
 

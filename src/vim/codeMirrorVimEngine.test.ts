@@ -6,35 +6,13 @@
  * that table in sync when adding cases here.
  */
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { installCodeMirrorDomStubs } from "./cmDomStubs";
 import {
   createVimEngine,
   type CodeMirrorVimEngine,
 } from "./codeMirrorVimEngine";
 
-beforeAll(() => {
-  // CodeMirror measures text with APIs jsdom doesn't implement. The zero-size
-  // stubs are fine because these tests assert document/mode state, not layout.
-  const zeroRect = {
-    x: 0,
-    y: 0,
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    width: 0,
-    height: 0,
-    toJSON: () => ({}),
-  } as DOMRect;
-  Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
-  Range.prototype.getBoundingClientRect = () => zeroRect;
-  if (!("ResizeObserver" in globalThis)) {
-    globalThis.ResizeObserver = class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    };
-  }
-});
+beforeAll(installCodeMirrorDomStubs);
 
 let engine: CodeMirrorVimEngine;
 

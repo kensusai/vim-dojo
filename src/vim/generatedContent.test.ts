@@ -8,32 +8,12 @@
  * does not depend on DOM layout the way real j keydowns do.)
  */
 import { beforeAll, describe, expect, it } from "vitest";
+import { installCodeMirrorDomStubs } from "./cmDomStubs";
 import { seededRandom } from "../core/generation/rng";
 import { templates } from "../core/generation/templates";
 import { createVimEngine } from "./codeMirrorVimEngine";
 
-beforeAll(() => {
-  const zeroRect = {
-    x: 0,
-    y: 0,
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    width: 0,
-    height: 0,
-    toJSON: () => ({}),
-  } as DOMRect;
-  Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
-  Range.prototype.getBoundingClientRect = () => zeroRect;
-  if (!("ResizeObserver" in globalThis)) {
-    globalThis.ResizeObserver = class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    };
-  }
-});
+beforeAll(installCodeMirrorDomStubs);
 
 const SEEDS_PER_TEMPLATE = 25;
 

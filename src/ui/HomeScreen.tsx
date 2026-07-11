@@ -47,7 +47,7 @@ export function HomeScreen() {
       cancelled = true;
     };
     // Load once per visit; profile changes while on screen don't re-resolve.
-  }, [clock, store]); // eslint-disable-line -- profile intentionally omitted
+  }, [clock, store]);
 
   // The next playable lesson (first "current" across stages), for the CTA.
   const next = (() => {
