@@ -1,5 +1,11 @@
 # agent-ready フィードバック
 
+## 2026-07-11 | win | skills/verify(実ブラウザ検証)
+
+- 状況: M5 の演習画面はユニットテスト(jsdom)が全部グリーンだったが、Playwright で実ブラウザを自動プレイしたところ「メダルが常に金」になる重大バグを発見。原因はキーストローク計測を CodeMirror の domEventHandlers で行っており、vim が消費したキーがハンドラに届かず取りこぼしていたこと。ユニットテストは `sendKey()`(本番と別経路)を使っていたため検出できなかった。
+- 提案: 「テストが本番と同じ経路を通っているか」を verify の観点に明記する。特にライブラリにキー入力/イベントを委譲する UI は、ヘッドレスのユニットテストに加えて実ブラウザ駆動での検証を必須にすると良い。
+- ステータス: 未回収
+
 ## 2026-07-11 | bug | agent-ready check(コマンド検出)
 
 - 状況: CLAUDE.md の開発コマンド欄に `npm run typecheck` 等を記載済みでも「not documented」と報告され続ける(AGENTS.md の `npm run test` / `npx vitest run <path>` も同様)。ドキュメントの実態と check 結果が一致しない。

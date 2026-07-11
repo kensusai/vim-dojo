@@ -8,6 +8,18 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   prettier,
   {
+    // e2e drive scripts run under Node + a real browser page: they legitimately
+    // use process/console and page-context globals (indexedDB). Not shipped.
+    files: ["e2e/**/*.mjs"],
+    languageOptions: {
+      globals: {
+        process: "readonly",
+        console: "readonly",
+        indexedDB: "readonly",
+      },
+    },
+  },
+  {
     // ADR-0005 rule 1: core must stay pure. It may not import anything outside
     // core (libraries, browser APIs) and may not read ambient time/randomness;
     // those come in through core/ports.ts. Test files are exempt: they import

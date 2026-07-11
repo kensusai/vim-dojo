@@ -50,11 +50,32 @@ afterEach(() => {
   engine.destroy();
 });
 
+/** Dispatch a real keydown on the editor's contentDOM, like a browser would.
+ * Unlike sendKey(), this goes through the DOM path where the vim extension
+ * consumes handled keys — the path that broke keystroke counting in M5. */
+const domKey = (key: string) => {
+  const el = engine.view.contentDOM;
+  el.dispatchEvent(
+    new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }),
+  );
+};
+
 describe("engine port basics", () => {
   it("reset loads the initial buffer and returns to normal mode", () => {
     engine.reset("hello\nworld");
     expect(engine.currentBuffer()).toBe("hello\nworld");
     expect(engine.currentMode()).toBe("normal");
+  });
+
+  it("counts real DOM keystrokes even for keys vim consumes (R2 regression)", () => {
+    engine.reset("hello world");
+    const seen: string[] = [];
+    engine.onKeystroke((k) => seen.push(k));
+    // g and w are vim commands the extension handles; Escape is a no-op in
+    // normal mode. All must be counted (this broke when counting via
+    // domEventHandlers, which vim-handled keys never reached).
+    for (const k of ["Escape", "g", "g", "0", "w", "d", "w"]) domKey(k);
+    expect(seen).toEqual(["Escape", "g", "g", "0", "w", "d", "w"]);
   });
 
   it("counts keystrokes including Esc (R2)", () => {

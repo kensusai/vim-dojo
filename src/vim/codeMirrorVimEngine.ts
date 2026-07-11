@@ -69,16 +69,20 @@ export function createVimEngine(parent: Element): CodeMirrorVimEngine {
           const text = update.state.doc.toString();
           for (const listener of bufferListeners) listener(text);
         }),
-        EditorView.domEventHandlers({
-          keydown: (event) => {
-            if (!PURE_MODIFIERS.has(event.key)) emitKeystroke(event.key);
-            return false; // observe only; vim handles the key
-          },
-        }),
       ],
     });
 
   const view = new EditorView({ parent, state: makeState("") });
+
+  // Count keystrokes on the CAPTURE phase, before the vim extension handles
+  // (and swallows) the key. CodeMirror's domEventHandlers run after vim, so
+  // motions/operators like g, l, dw never reach them — only unhandled keys
+  // (Escape) did, which is why counting was broken until this was added.
+  // R2 requires counting every key, including Esc and mode switches.
+  const onDomKeydown = (event: KeyboardEvent) => {
+    if (!PURE_MODIFIERS.has(event.key)) emitKeystroke(event.key);
+  };
+  view.contentDOM.addEventListener("keydown", onDomKeydown, true);
 
   const cm = () => {
     const instance = getCM(view);
@@ -134,6 +138,7 @@ export function createVimEngine(parent: Element): CodeMirrorVimEngine {
       view.focus();
     },
     destroy() {
+      view.contentDOM.removeEventListener("keydown", onDomKeydown, true);
       keystrokeListeners.clear();
       bufferListeners.clear();
       view.destroy();
