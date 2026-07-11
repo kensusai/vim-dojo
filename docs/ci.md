@@ -26,7 +26,8 @@
 
 - ランナー: `ubuntu-latest`。
 - Node.js: `.node-version`(リポジトリルート)を唯一の正とし、`actions/setup-node` が同ファイルを読む。ローカルは mise が同ファイルを解決する。マトリクスは組まない(実行環境はブラウザであり、Node はビルドツールの動作要件でしかないため単一バージョンで十分)。
-- npm: CI で `npm@11` をインストールしてローカルと同じメジャーに揃える。Node 22 同梱の npm 10 は lockfile の optional 依存の解釈が異なり `npm ci` が同期エラーになるため(2026-07-11 に2回発生)。ローカルの npm メジャーを上げたら ci.yml も追従させる。
+- npm: CI で `npm@11` をインストールしてローカルと同じメジャーに揃える(「CI はローカルと同一」原則)。
+- **既知の罠(2026-07-11 に2回発生)**: Vite(rolldown)の wasm フォールバック `@rolldown/binding-wasm32-wasi` → `@napi-rs/wasm-runtime` が `@emnapi/core` / `@emnapi/runtime` を peer 要求するが、macOS での `npm install` はこの optional サブツリーの実体を lockfile に記録しないことがあり、CI(Linux)の `npm ci` だけが「Missing: @emnapi/core」で落ちる。対策として両パッケージを devDependencies に明示ピン留めして root エントリを lockfile に固定している。**依存を追加・更新したら push 前にローカルで `npm ci` を実行し、CI が落ちたらこの項を思い出すこと。** なお `overrides` での固定は npm ci が EUSAGE で壊れるため使わない。
 
 ## キャッシュ戦略
 
