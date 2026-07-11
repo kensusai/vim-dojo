@@ -43,6 +43,7 @@ const ExerciseSnapshotSchema = z.object({
   id: z.string(),
   title: z.string(),
   hint: z.string().optional(),
+  solution: z.array(z.string()).optional(),
   initialBuffer: z.string(),
   targetBuffer: z.string(),
   par: z.number().int().positive(),
@@ -174,6 +175,9 @@ export function toCoreDailyChallenge(
     practicedCommands: stored.exercise.practicedCommands.map(commandId),
     ...(stored.exercise.hint !== undefined
       ? { hint: stored.exercise.hint }
+      : {}),
+    ...(stored.exercise.solution !== undefined
+      ? { solution: stored.exercise.solution }
       : {}),
   };
   return {

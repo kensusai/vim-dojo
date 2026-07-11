@@ -18,6 +18,12 @@ export interface Exercise {
   practicedCommands: CommandId[];
   /** One-line sensei guidance shown next to generated exercises (任意). */
   hint?: string;
+  /**
+   * 模範解答: the author's par-length key sequence, shown in the result
+   * modal as 答え合わせ (playtest feedback). Tokens are single keystrokes;
+   * "<Esc>" leaves insert mode. Verified by the content test suites.
+   */
+  solution?: string[];
 }
 
 /** Where an attempt happened; drives XP rules (R15/R16) and analytics. */

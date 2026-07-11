@@ -340,9 +340,13 @@ export function PracticePlayer({
             initial={{ scale: 0.7, opacity: 0, y: 24 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             transition={{ type: "spring", stiffness: 420, damping: 26 }}
-            className="pixel-panel w-[520px] p-8 text-center [background:repeating-conic-gradient(from_0deg_at_50%_40%,rgb(255_210_94/0.08)_0deg_12deg,transparent_12deg_24deg),var(--color-surface)]"
+            className="pixel-panel w-[560px] p-8 text-center [background:repeating-conic-gradient(from_0deg_at_50%_40%,rgb(255_210_94/0.08)_0deg_12deg,transparent_12deg_24deg),var(--color-surface)]"
           >
             {renderResult(finished, { retry: startExercise, advance })}
+            <SolutionReveal
+              exercise={exercise}
+              keystrokes={finished.attempt.keystrokes}
+            />
           </motion.div>
         </div>
       )}
@@ -403,6 +407,44 @@ export function ResultFooter({
         </button>
       </div>
     </>
+  );
+}
+
+/**
+ * 答え合わせ: the model solution and its reasoning, shown after every attempt
+ * (playtest feedback: clearing by brute force taught nothing). The par is the
+ * model's length, so this is also "how the par is even possible".
+ */
+function SolutionReveal({
+  exercise,
+  keystrokes,
+}: {
+  exercise: Exercise;
+  keystrokes: number;
+}) {
+  const solution = exercise.solution;
+  if (!solution) return null;
+  const beat = keystrokes <= exercise.par;
+  return (
+    <div className="mt-5 border-t-2 border-ink pt-4 text-left">
+      <div className="mb-2 font-mono text-[10px] font-black tracking-[0.2em] text-cream-dim">
+        答え合わせ — 模範解答({exercise.par} キー)
+        {beat ? " / 模範と互角以上だ!!" : ` / あなた: ${keystrokes} キー`}
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {solution.map((key, i) => (
+          <kbd
+            key={i}
+            className="min-w-[24px] border-2 border-b-4 border-ink-bold bg-raised px-1.5 text-center font-mono text-sm font-bold text-gold"
+          >
+            {key === "<Esc>" ? "Esc" : key === " " ? "␣" : key}
+          </kbd>
+        ))}
+      </div>
+      {exercise.hint && (
+        <p className="mt-2 text-xs text-cream-dim">🎯 {exercise.hint}</p>
+      )}
+    </div>
   );
 }
 

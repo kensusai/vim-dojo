@@ -43,7 +43,9 @@ function generateOne(
         )
       : candidates;
   const template = pool[nextInt(rng, pool.length)]!;
-  const { exercise } = template.generate(rng, id);
+  const generated = template.generate(rng, id);
+  // carry the model solution so the result modal can do 答え合わせ
+  const exercise = { ...generated.exercise, solution: generated.solution };
   assertValidExercise(exercise); // 例外ケース: 自明・解なしを構造的に排除
   return { exercise, templateId: template.id };
 }

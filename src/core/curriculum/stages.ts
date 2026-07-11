@@ -9,6 +9,7 @@
 import { commandId, exerciseId, lessonId } from "../ids";
 import type { Exercise } from "../practice/exercise";
 import type { Lesson, Stage } from "./curriculum";
+import { SOLUTIONS } from "./solutions";
 
 const ex = (
   id: string,
@@ -26,6 +27,7 @@ const ex = (
   par,
   practicedCommands: commands.map(commandId),
   ...(hint !== undefined ? { hint } : {}),
+  ...(SOLUTIONS[id] !== undefined ? { solution: SOLUTIONS[id] } : {}),
 });
 
 const stage1Lessons: Lesson[] = [
@@ -441,6 +443,7 @@ const stage2Lessons: Lesson[] = [
         'let new = "new"',
         17,
         ["ciw", 'ci"'],
+        'w で old へ → ciw で new と書いて Esc → f" で文字列へ → ci" で new と書いて Esc。2つの技の連携だ。',
       ),
       ex("s2-l10-e2", "行を複製して番号を変えろ", "row 1", "row 1\nrow 2", 9, [
         "yy",
