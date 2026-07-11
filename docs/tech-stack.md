@@ -24,7 +24,7 @@
 | デプロイ              | GitHub Pages + GitHub Actions          | 採用                       |
 | オフライン/キャッシュ | vite-plugin-pwa                        | 採用(導入は CI 構築後)     |
 | ユニットテスト        | Vitest + Testing Library               | 採用                       |
-| E2E テスト            | Playwright                             | 未選定(基準のみ記載)       |
+| E2E テスト            | Playwright(@playwright/test)           | 採用(CI スモーク1本)       |
 | lint / format         | ESLint + Prettier                      | 採用                       |
 | 監視・ログ            | なし(個人利用・ローカル完結)           | 対象外                     |
 
@@ -86,7 +86,7 @@
 ## テスト
 
 - **採用(ユニット)**: Vitest + @testing-library/react。core の業務ルール R1〜R19 は UI なしの純粋関数テストとして網羅する(core/shell 構成の主目的)。
-- **採用(実ブラウザ検証)**: Playwright(dev)。M5 で採用。検証スクリプトは `e2e/*.mjs`(`npm run dev` に対して手動起動)。**採用理由**: ユニットテスト(jsdom + `sendKey`)が本番の DOM 入力経路を通らず、キーストローク計測の取りこぼしバグを見逃した。vim エンジンのように入力をライブラリに委譲する画面は、実ブラウザでの自動プレイ検証が必須(`docs/vim-coverage.md` の 🖥 項目もこれで潰す)。**現状は CI に組み込まず手動実行**(ブラウザバイナリのDL・実行時間のため)。CI 統合は M8 で判断。
+- **採用(実ブラウザ検証)**: Playwright(dev)。M5 で採用。検証スクリプトは `e2e/*.mjs`(`npm run dev` に対して手動起動)。**採用理由**: ユニットテスト(jsdom + `sendKey`)が本番の DOM 入力経路を通らず、キーストローク計測の取りこぼしバグを見逃した。vim エンジンのように入力をライブラリに委譲する画面は、実ブラウザでの自動プレイ検証が必須(`docs/vim-coverage.md` の 🖥 項目もこれで潰す)。**CI 統合済み**: `e2e/smoke.spec.ts`(@playwright/test)が push ごとに実行される(所要 +1分弱、ブラウザはキャッシュ)。深いフロー(デイリー凍結・弱点ドリル等)は手動ドライブ(`e2e/drive-*.mjs`)のままで、リリース前に流す(docs/monitoring.md)。
 - **不採用**: Jest(Vite との統合で Vitest に一日の長)。
 - **補助**: fake-indexeddb(dev)— storage 層の結合テスト(保存→リロード→復元)を Node 上で実行するため。ブラウザ実物での検証は E2E 導入時に統合。
 

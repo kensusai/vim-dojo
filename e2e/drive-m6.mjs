@@ -6,30 +6,17 @@
  * Run: npm run dev (another shell) then `node e2e/drive-m6.mjs`.
  */
 import { chromium } from "playwright";
+import { BASE, pressKeys, resetDatabase } from "./lib.mjs";
 
-const BASE = "http://localhost:5173";
 const SHOTS = process.env.SHOTS_DIR ?? ".";
 const shot = (n) => `${SHOTS}/${n}.png`;
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 const log = (...a) => console.log("[m6]", ...a);
-const keys = async (arr, d = 45) => {
-  for (const k of arr) {
-    await page.keyboard.press(k);
-    await page.waitForTimeout(d);
-  }
-};
 
 await page.goto(BASE);
-await page.evaluate(
-  () =>
-    new Promise((r) => {
-      const q = indexedDB.deleteDatabase("vim-dojo");
-      q.onsuccess = q.onerror = q.onblocked = () => r();
-    }),
-);
-await page.reload();
+await resetDatabase(page);
 
 // --- Home screen ------------------------------------------------------------
 await page.waitForSelector("text=WORLD MAP", { timeout: 10_000 });
@@ -44,7 +31,7 @@ await cta.click();
 await page.waitForSelector(".editor-host .cm-content", { timeout: 10_000 });
 await page.locator(".editor-host .cm-content").click();
 await shot("m6-02-lesson");
-await keys(["Escape", "g", "g", "0", "x"]); // delete leading X
+await pressKeys(page, ["Escape", "g", "g", "0", "x"]); // delete leading X
 await page.waitForSelector('[role="dialog"]', { timeout: 5000 });
 log(
   "lesson1 ex1 cleared:",
@@ -53,7 +40,7 @@ log(
 await page.getByRole("button", { name: /次のお題/ }).click();
 await page.waitForTimeout(300);
 await page.locator(".editor-host .cm-content").click();
-await keys(["Escape", "g", "g", "0", "x"]); // ex2: delete leading #
+await pressKeys(page, ["Escape", "g", "g", "0", "x"]); // ex2: delete leading #
 await page.waitForSelector('[role="dialog"]', { timeout: 5000 });
 const finalModal = await page.locator("[role=dialog]").innerText();
 log("lesson1 complete modal:", finalModal.replace(/\n/g, " | "));

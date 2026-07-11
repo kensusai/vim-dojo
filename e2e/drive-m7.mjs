@@ -5,32 +5,15 @@
  * Run: npm run dev (another shell) then `node e2e/drive-m7.mjs`.
  */
 import { chromium } from "playwright";
+import { BASE, focusEditor, pressKeys, resetDatabase } from "./lib.mjs";
 
-const BASE = "http://localhost:5173";
 const SHOTS = process.env.SHOTS_DIR ?? ".";
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 const log = (...a) => console.log("[m7]", ...a);
-const keys = async (arr, d = 45) => {
-  for (const k of arr) {
-    await page.keyboard.press(k);
-    await page.waitForTimeout(d);
-  }
-};
-const focusEditor = async () => {
-  await page.locator(".editor-host .cm-content").click();
-  await keys(["Escape", "g", "g", "0"]);
-};
 
 await page.goto(BASE);
-await page.evaluate(
-  () =>
-    new Promise((r) => {
-      const q = indexedDB.deleteDatabase("vim-dojo");
-      q.onsuccess = q.onerror = q.onblocked = () => r();
-    }),
-);
-await page.reload();
+await resetDatabase(page);
 await page.waitForSelector("text=WORLD MAP", { timeout: 10_000 });
 
 // Fresh player: no daily yet (nothing unlocked), lesson CTA shown.
@@ -42,13 +25,13 @@ if (dailyBefore !== 0)
 // Clear lesson 1 (two exercises, x each).
 await page.getByRole("button", { name: /稽古をはじめる/ }).click();
 await page.waitForSelector(".editor-host .cm-content", { timeout: 10_000 });
-await focusEditor();
-await keys(["x"]);
+await focusEditor(page);
+await pressKeys(page, ["x"]);
 await page.waitForSelector('[role="dialog"]');
 await page.getByRole("button", { name: /次のお題/ }).click();
 await page.waitForTimeout(300);
-await focusEditor();
-await keys(["x"]);
+await focusEditor(page);
+await pressKeys(page, ["x"]);
 await page.waitForSelector('[role="dialog"]');
 await page.getByRole("button", { name: /ホームへ/ }).click();
 await page.waitForSelector("text=WORLD MAP");
@@ -68,8 +51,8 @@ async function playLesson(solvers) {
   await page.waitForSelector(".editor-host .cm-content", { timeout: 10_000 });
   for (let i = 0; i < solvers.length; i++) {
     await page.waitForTimeout(300);
-    await focusEditor();
-    await keys(solvers[i]);
+    await focusEditor(page);
+    await pressKeys(page, solvers[i]);
     await page.waitForSelector('[role="dialog"]');
     const btn =
       i === solvers.length - 1
@@ -109,8 +92,8 @@ const target = await page.locator("aside pre").last().innerText();
 let diffAt = 0;
 while (bufferText[diffAt] === target[diffAt]) diffAt++;
 log(`daily diff at column ${diffAt}`);
-await focusEditor();
-await keys([...Array(diffAt).fill("l"), "x"], 25);
+await focusEditor(page);
+await pressKeys(page, [...Array(diffAt).fill("l"), "x"], 25);
 await page.waitForSelector('[role="dialog"]', { timeout: 5000 });
 const modal = await page.locator('[role="dialog"]').innerText();
 log("daily result:", modal.replace(/\n/g, " | ").slice(0, 120));

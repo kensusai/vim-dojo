@@ -33,5 +33,7 @@ export default defineConfig({
     // core is pure TypeScript (ADR-0005), so the default node environment is
     // enough; switch per-file to jsdom when UI component tests arrive.
     environment: "node",
+    // e2e/*.spec.ts belongs to Playwright, not Vitest.
+    include: ["src/**/*.test.ts"],
   },
 });
