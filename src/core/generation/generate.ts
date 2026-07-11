@@ -25,29 +25,13 @@ function generateOne(
   rng: RandomSource,
   usable: ExerciseTemplate[],
   id: string,
-  weakCommands?: Set<CommandId>,
-  avoidTemplateId?: string,
-): { exercise: Exercise; templateId: string } {
-  // Variety: avoid dealing the same template twice in a row when there is
-  // a choice (5×同じ敵はドリルが単調になる — playtest feedback).
-  const candidates =
-    usable.length > 1 && avoidTemplateId
-      ? usable.filter((t) => t.id !== avoidTemplateId)
-      : usable;
-  // Weakness weighting (R19): templates practicing a weak command appear
-  // twice in the draw pool, doubling their chance.
-  const pool =
-    weakCommands && weakCommands.size > 0
-      ? candidates.flatMap((t) =>
-          t.practices.some((c) => weakCommands.has(c)) ? [t, t] : [t],
-        )
-      : candidates;
-  const template = pool[nextInt(rng, pool.length)]!;
+): Exercise {
+  const template = usable[nextInt(rng, usable.length)]!;
   const generated = template.generate(rng, id);
   // carry the model solution so the result modal can do 答え合わせ
   const exercise = { ...generated.exercise, solution: generated.solution };
   assertValidExercise(exercise); // 例外ケース: 自明・解なしを構造的に排除
-  return { exercise, templateId: template.id };
+  return exercise;
 }
 
 /**
@@ -62,7 +46,7 @@ export function generateDailyChallenge(
   if (usable.length === 0) return null;
   const seed = `daily-${date}`;
   const rng = seededRandom(seed);
-  const { exercise } = generateOne(rng, usable, `daily-${date}`);
+  const exercise = generateOne(rng, usable, `daily-${date}`);
   return { date, seed, exercise, xpGranted: false };
 }
 
@@ -81,16 +65,42 @@ export function generateDrill(options: {
   if (usable.length === 0) return [];
   const rng = seededRandom(`drill-${options.seed}`);
   const weak = new Set(options.weakCommands ?? []);
-  let lastTemplateId: string | undefined;
-  return Array.from({ length: options.count ?? 5 }, (_, i) => {
-    const { exercise, templateId } = generateOne(
-      rng,
-      usable,
-      `drill-${options.seed}-${i}`,
-      weak,
-      lastTemplateId,
-    );
-    lastTemplateId = templateId;
+  const count = options.count ?? 5;
+
+  // Deal templates like a deck: each round is a weighted shuffle of every
+  // usable template, so a session covers as many DIFFERENT drill types as
+  // possible (playtest: unlocked types should actually show up), with weak
+  // commands still favored (R19) via weighted-random sampling (k = u^(1/w)).
+  const shuffledRound = () =>
+    usable
+      .map((template) => ({
+        template,
+        key: Math.pow(
+          rng.next(),
+          1 / (template.practices.some((c) => weak.has(c)) ? 2 : 1),
+        ),
+      }))
+      .sort((a, b) => b.key - a.key)
+      .map((entry) => entry.template);
+
+  const order: ExerciseTemplate[] = [];
+  while (order.length < count) {
+    const round = shuffledRound();
+    // avoid the same template twice in a row across round boundaries
+    if (
+      order.length > 0 &&
+      round.length > 1 &&
+      round[0]!.id === order[order.length - 1]!.id
+    ) {
+      [round[0], round[1]] = [round[1]!, round[0]!];
+    }
+    order.push(...round);
+  }
+
+  return order.slice(0, count).map((template, i) => {
+    const generated = template.generate(rng, `drill-${options.seed}-${i}`);
+    const exercise = { ...generated.exercise, solution: generated.solution };
+    assertValidExercise(exercise);
     return exercise;
   });
 }
