@@ -22,6 +22,8 @@ import {
 } from "../core/practice/session";
 import type { VimMode } from "../core/ports";
 import { levelProgress } from "../core/progression/xp";
+import { SenseiHintPanel } from "./Sensei";
+import { isMuted, playClear, toggleMuted } from "./sound";
 import { useAppStore } from "./storeContext";
 import {
   createVimEngine,
@@ -109,6 +111,7 @@ export function PracticePlayer({
       setResults((rs) =>
         rs.map((r, i) => (i === exerciseIndex ? attempt.medal : r)),
       );
+      if (attempt.medal) playClear(attempt.medal);
       const info = { attempt, exerciseIndex, isLastExercise: isLast };
       onAttemptFinishedRef.current(info);
       setFinished(info);
@@ -166,7 +169,7 @@ export function PracticePlayer({
       <header className="flex items-center justify-between border-b-3 border-ink bg-black/25 px-12 py-3 font-mono">
         <div className="flex items-center gap-4">
           {headerLeft}
-          <span className="font-sans text-lg font-black">{exercise.title}</span>
+          <SoundToggle />
         </div>
         <div className="flex items-center gap-1" aria-label="進行">
           <span className="mr-2 text-[10px] tracking-widest text-cream-faint">
@@ -197,9 +200,15 @@ export function PracticePlayer({
           <span className="text-[10px] tracking-widest text-cream-faint">
             KEYS
           </span>
-          <span className="text-3xl font-black text-matcha [text-shadow:3px_3px_0_rgb(0_0_0/0.5)]">
+          <motion.span
+            key={keystrokes}
+            initial={{ scale: keystrokes > 0 ? 1.35 : 1 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 700, damping: 22 }}
+            className="inline-block text-3xl font-black text-matcha [text-shadow:3px_3px_0_rgb(0_0_0/0.5)]"
+          >
             {keystrokes}
-          </span>
+          </motion.span>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative h-[18px] w-[280px] border-3 border-ink-bold bg-black">
@@ -217,7 +226,21 @@ export function PracticePlayer({
         <div className="text-sm text-cream-dim">PAR {exercise.par}</div>
       </div>
 
-      <main className="grid flex-1 grid-cols-[1fr_400px] gap-6 px-12 py-6">
+      {/* Quest banner: the お題 is the star of the screen (playtest feedback:
+          it was buried in the header, small and hard to notice). */}
+      <div className="flex items-end justify-between gap-6 px-12 pt-6">
+        <h1 className="text-3xl font-black tracking-wide [text-shadow:4px_4px_0_rgb(0_0_0/0.45)]">
+          <span className="mr-3 align-middle font-mono text-sm font-black tracking-[0.3em] text-gold">
+            ▶ お題
+          </span>
+          {exercise.title}
+        </h1>
+        <p className="whitespace-nowrap pb-1 font-mono text-xs text-cream-dim">
+          バッファを TARGET と同じ形にすれば「一本」だ
+        </p>
+      </div>
+
+      <main className="grid flex-1 grid-cols-[1fr_400px] gap-6 px-12 pb-6 pt-4">
         <section className="pixel-panel flex flex-col overflow-hidden !bg-editor">
           <div className="flex items-center justify-between border-b-3 border-ink bg-raised px-4 py-1.5 font-mono text-[10px] tracking-widest text-cream-faint">
             <span>BUFFER</span>
@@ -233,7 +256,7 @@ export function PracticePlayer({
         </section>
 
         <aside className="flex flex-col gap-5">
-          {sidePanel}
+          {sidePanel ?? <SenseiHintPanel hint={exercise.hint} />}
 
           <div className="pixel-panel p-4">
             <div className="mb-2 font-mono text-xs font-black tracking-[0.2em] text-cream-dim">
@@ -277,6 +300,8 @@ export function PracticePlayer({
           aria-label="結果"
           className="fixed inset-0 z-10 flex items-center justify-center bg-black/70"
         >
+          {/* the moment of the clear: a quick gold flash behind the modal */}
+          <div aria-hidden="true" className="clear-flash fixed inset-0" />
           <motion.div
             initial={{ scale: 0.7, opacity: 0, y: 24 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -344,6 +369,21 @@ export function ResultFooter({
         </button>
       </div>
     </>
+  );
+}
+
+/** Mute toggle for the retro sound effects (preference lives in localStorage). */
+function SoundToggle() {
+  const [muted, setMuted] = useState(isMuted());
+  return (
+    <button
+      type="button"
+      aria-label={muted ? "効果音をオンにする" : "効果音をオフにする"}
+      onClick={() => setMuted(toggleMuted())}
+      className="text-sm text-cream-faint hover:text-cream"
+    >
+      {muted ? "🔇" : "🔊"}
+    </button>
   );
 }
 

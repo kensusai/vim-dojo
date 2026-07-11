@@ -85,6 +85,102 @@
     animation: blink-step 1.2s steps(1) infinite;
   }
 
+  /* Night-sky scene for the home sensei board (design/mockups/home-c.html) */
+  .scene-sky {
+    background:
+      linear-gradient(180deg, #0d1524 0%, #131b2c 58%, transparent 58%),
+      var(--color-surface);
+  }
+  .scene-star {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: #cfe4ff;
+  }
+  .scene-moon {
+    position: absolute;
+    top: 26px;
+    right: 64px;
+    width: 36px;
+    height: 36px;
+    background: var(--color-gold);
+    opacity: 0.9;
+    clip-path: polygon(
+      0 25%,
+      25% 25%,
+      25% 0,
+      75% 0,
+      75% 25%,
+      100% 25%,
+      100% 75%,
+      75% 75%,
+      75% 100%,
+      25% 100%,
+      25% 75%,
+      0 75%
+    );
+  }
+  .scene-mountains {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 96px;
+    height: 90px;
+    background: #1a2438;
+    opacity: 0.8;
+    clip-path: polygon(
+      0 100%,
+      0 60%,
+      6% 45%,
+      11% 60%,
+      17% 30%,
+      24% 62%,
+      30% 40%,
+      37% 70%,
+      44% 35%,
+      52% 65%,
+      58% 48%,
+      66% 72%,
+      73% 42%,
+      80% 66%,
+      87% 38%,
+      94% 60%,
+      100% 50%,
+      100% 100%
+    );
+  }
+  .scene-ground {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 26px;
+    background: repeating-linear-gradient(
+      90deg,
+      #2f2818 0 14px,
+      #272112 14px 28px
+    );
+    border-top: 3px solid var(--color-ink);
+  }
+
+  @keyframes clear-flash-fade {
+    0% {
+      opacity: 0.55;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  .clear-flash {
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse at center,
+      rgb(255 210 94 / 0.9),
+      transparent 70%
+    );
+    animation: clear-flash-fade 0.45s ease-out both;
+  }
+
   @keyframes pop-in {
     0% {
       transform: scale(0.6) rotate(-6deg);

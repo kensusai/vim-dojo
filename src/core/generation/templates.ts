@@ -72,6 +72,7 @@ const extraChar: ExerciseTemplate = {
       exercise: {
         id: exerciseId(id),
         title: "紛れ込んだ一文字を消せ",
+        hint: "w で単語へ飛び、l で寄って、x で消す。",
         initialBuffer: initial,
         targetBuffer: target,
         par: solution.length,
@@ -104,6 +105,7 @@ const duplicateLine: ExerciseTemplate = {
       exercise: {
         id: exerciseId(id),
         title: "重複した行を消せ",
+        hint: "j で重複行へ降りて、dd で行ごと消す。",
         initialBuffer: initial,
         targetBuffer: target,
         par: solution.length,
@@ -134,6 +136,7 @@ const trailingChar: ExerciseTemplate = {
       exercise: {
         id: exerciseId(id),
         title: "行末のゴミを消せ",
+        hint: "j で行へ降りて、$ で行末へ、x で消す。",
         initialBuffer: initial,
         targetBuffer: target,
         par: solution.length,
@@ -161,6 +164,7 @@ const fJump: ExerciseTemplate = {
       exercise: {
         id: exerciseId(id),
         title: `${junk} まで飛んで消せ`,
+        hint: `f${junk} で一撃ジャンプして x。`,
         initialBuffer: initial,
         targetBuffer: target,
         par: solution.length,

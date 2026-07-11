@@ -22,17 +22,18 @@ test("boot → lesson 1 → clear → unlock → streak persists", async ({ page
   await page.getByRole("button", { name: /稽古をはじめる/ }).click();
   await expect(page.locator(".editor-host .cm-content")).toBeVisible();
 
-  // Exercise 1: delete the leading junk char. The session auto-focuses the
-  // editor with the cursor at 0,0 — one real keydown must clear it (R1) and
-  // score gold at par 1 (this exact-count assertion is the R2 regression net).
-  await page.waitForTimeout(300);
-  await pressKeys(page, ["x"]);
-  await expect(page.getByRole("dialog")).toContainText("一本"); // gold at par 1
-  await page.getByRole("button", { name: /次のお題/ }).click();
-
-  // Exercise 2 completes the lesson: XP, unlock (R5), streak (R8).
-  await page.waitForTimeout(300);
-  await pressKeys(page, ["x"]);
+  // Lesson 1 exercises are all solved with x presses. The session auto-
+  // focuses the editor with the cursor at 0,0 — real keydowns must clear
+  // each at exactly par (this exact assertion is the R2 regression net).
+  const solutions = [["x"], ["x"], ["x", "x"], ["x", "x", "x"]];
+  for (const [index, solution] of solutions.entries()) {
+    await page.waitForTimeout(300);
+    await pressKeys(page, solution);
+    await expect(page.getByRole("dialog")).toContainText("一本"); // gold at par
+    if (index < solutions.length - 1) {
+      await page.getByRole("button", { name: /次のお題/ }).click();
+    }
+  }
   await expect(page.getByRole("dialog")).toContainText("レッスン皆伝");
   await expect(page.getByRole("dialog")).toContainText("+30 XP"); // gold 10 + lesson 20
   await page.getByRole("button", { name: /ホームへ/ }).click();

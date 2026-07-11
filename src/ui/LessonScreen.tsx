@@ -18,6 +18,7 @@ import {
   type FinishedInfo,
 } from "./PracticePlayer";
 import { SenseiSprite } from "./Sensei";
+import { playLessonComplete } from "./sound";
 import { useAppStore } from "./storeContext";
 
 export function LessonScreen({
@@ -61,6 +62,7 @@ export function LessonScreen({
       next = cleared.profile;
       xp += cleared.xpGained;
       next = recordLearningActivity(next, info.attempt.playedAt).profile;
+      playLessonComplete();
     }
     if (next !== profileRef.current) setProfile(next);
     setLastXp(xp);

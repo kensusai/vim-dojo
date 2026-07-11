@@ -42,13 +42,37 @@ const solutions: Record<string, string[]> = {
   "s1-l12-e1": ["d", "d"],
   "s1-l12-e2": ["3", "x"],
   "s1-l12-e3": ["2", "d", "d"],
+  "s1-l1-e3": ["x", "x"],
+  "s1-l1-e4": ["x", "x", "x"],
+  "s1-l2-e3": ["l", "l", "l", "x"],
+  "s1-l2-e4": ["l", "x", "l", "x"],
+  "s1-l3-e2": ["j", "j", "x"],
+  "s1-l3-e3": ["j", "l", "x"],
+  "s1-l4-e3": ["w", "w", "w", "x"],
+  "s1-l4-e4": ["w", "l", "x"],
+  "s1-l5-e2": ["x", "w", "x"],
+  "s1-l5-e3": ["w", "w", "x"],
+  "s1-l6-e2": ["e", "e", "x"],
+  "s1-l6-e3": ["e", "x", "h", "x"],
+  "s1-l7-e2": ["$", "x", "x"],
+  "s1-l7-e3": ["$", "x", "0", "x"],
+  "s1-l8-e3": ["t", ";", "x"],
+  "s1-l8-e4": ["f", "X", "x"],
+  "s1-l9-e2": ["G", "$", "x"],
+  "s1-l9-e3": ["G", "g", "g", "x"],
+  "s1-l10-e2": ["$", "a", "!", "<Esc>"],
+  "s1-l10-e3": ["l", "i", "i", "<Esc>"],
+  "s1-l11-e2": ["O", "f", "i", "r", "s", "t", "<Esc>"],
+  "s1-l11-e3": ["o", "e", "n", "d", "<Esc>"],
+  "s1-l12-e4": ["4", "x"],
+  "s1-l12-e5": ["3", "d", "d"],
 };
 
 const stage1 = stages[0]!;
 
 /** Exercises whose solution needs j/k, which jsdom can't drive (no layout).
  * Verified in the browser instead (e2e/drive-m6.mjs). */
-const browserOnly = new Set(["s1-l3-e1"]);
+const browserOnly = new Set(["s1-l3-e1", "s1-l3-e2", "s1-l3-e3"]);
 
 const INSERT_ENTER = new Set(["i", "a", "A", "I", "o", "O"]);
 

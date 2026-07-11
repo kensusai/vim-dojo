@@ -16,6 +16,8 @@ export interface Exercise {
   par: number;
   /** Commands this exercise practices — the input for weakness analysis (R19). */
   practicedCommands: CommandId[];
+  /** One-line sensei guidance shown next to generated exercises (任意). */
+  hint?: string;
 }
 
 /** Where an attempt happened; drives XP rules (R15/R16) and analytics. */

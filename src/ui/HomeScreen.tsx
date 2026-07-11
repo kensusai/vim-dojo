@@ -123,14 +123,42 @@ export function HomeScreen() {
 
       <main className="flex flex-col gap-6 px-12 py-6">
         {/* Sensei board */}
-        <section className="pixel-panel flex items-end gap-6 p-8">
-          <div className="flex flex-none flex-col items-center">
+        <section className="pixel-panel scene-sky relative flex items-end gap-6 overflow-hidden p-8 pb-10">
+          <span
+            aria-hidden="true"
+            className="scene-star"
+            style={{ top: 22, left: "12%" }}
+          />
+          <span
+            aria-hidden="true"
+            className="scene-star"
+            style={{ top: 48, left: "30%" }}
+          />
+          <span
+            aria-hidden="true"
+            className="scene-star"
+            style={{ top: 18, left: "55%" }}
+          />
+          <span
+            aria-hidden="true"
+            className="scene-star"
+            style={{ top: 60, left: "72%" }}
+          />
+          <span
+            aria-hidden="true"
+            className="scene-star"
+            style={{ top: 34, left: "88%" }}
+          />
+          <div aria-hidden="true" className="scene-moon" />
+          <div aria-hidden="true" className="scene-mountains" />
+          <div aria-hidden="true" className="scene-ground" />
+          <div className="relative flex flex-none flex-col items-center">
             <SenseiSprite mood="hype" size={140} />
             <div className="mt-2 font-mono text-[10px] tracking-[0.2em] text-cream-faint">
               SHIHAN &quot;GEKIATSU&quot;
             </div>
           </div>
-          <div className="flex-1">
+          <div className="relative flex-1">
             <SpeechBubble>
               {profile.streak.current > 0 ? (
                 <>

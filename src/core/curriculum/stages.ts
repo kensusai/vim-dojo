@@ -36,6 +36,8 @@ const stage1Lessons: Lesson[] = [
     exercises: [
       ex("s1-l1-e1", "先頭の余分な文字を消せ", "Xhello", "hello", 1, ["x"]),
       ex("s1-l1-e2", "先頭の記号を消せ", "#title", "title", 1, ["x"]),
+      ex("s1-l1-e3", "先頭の2文字を消せ", "XXvim", "vim", 2, ["x"]),
+      ex("s1-l1-e4", "コメント記号を全部消せ", "###go", "go", 3, ["x"]),
     ],
   },
   {
@@ -48,6 +50,8 @@ const stage1Lessons: Lesson[] = [
     exercises: [
       ex("s1-l2-e1", "2文字目を消せ", "aXbc", "abc", 2, ["l", "x"]),
       ex("s1-l2-e2", "3文字目を消せ", "abXc", "abc", 3, ["l", "x"]),
+      ex("s1-l2-e3", "4文字目を消せ", "abcXde", "abcde", 4, ["l", "x"]),
+      ex("s1-l2-e4", "2つの X を消せ", "aXbX", "ab", 4, ["l", "x"]),
     ],
   },
   {
@@ -64,6 +68,19 @@ const stage1Lessons: Lesson[] = [
         2,
         ["j", "x"],
       ),
+      ex(
+        "s1-l3-e2",
+        "3行目の先頭を消せ",
+        "one\ntwo\nXthree",
+        "one\ntwo\nthree",
+        3,
+        ["j", "x"],
+      ),
+      ex("s1-l3-e3", "2行目の2文字目を消せ", "ab\ncXd\nef", "ab\ncd\nef", 3, [
+        "j",
+        "l",
+        "x",
+      ]),
     ],
   },
   {
@@ -82,6 +99,12 @@ const stage1Lessons: Lesson[] = [
         3,
         ["w", "x"],
       ),
+      ex("s1-l4-e3", "4単語目の頭を消せ", "a b c Xd", "a b c d", 4, ["w", "x"]),
+      ex("s1-l4-e4", "2単語目の2文字目を消せ", "foo bXar", "foo bar", 3, [
+        "w",
+        "l",
+        "x",
+      ]),
     ],
   },
   {
@@ -93,6 +116,11 @@ const stage1Lessons: Lesson[] = [
       ex("s1-l5-e1", "戻って先頭を消せ", "one two", "ne two", 3, [
         "w",
         "b",
+        "x",
+      ]),
+      ex("s1-l5-e2", "順に2つ消せ", "Xaa Xbb", "aa bb", 3, ["w", "x"]),
+      ex("s1-l5-e3", "3単語目の頭を消せ", "aa bb Xcc dd", "aa bb cc dd", 3, [
+        "w",
         "x",
       ]),
     ],
@@ -107,6 +135,15 @@ const stage1Lessons: Lesson[] = [
         "e",
         "x",
       ]),
+      ex("s1-l6-e2", "2単語目の末尾を消せ", "foo barX baz", "foo bar baz", 3, [
+        "e",
+        "x",
+      ]),
+      ex("s1-l6-e3", "末尾の2文字を消せ", "vimXX rocks", "vim rocks", 4, [
+        "e",
+        "h",
+        "x",
+      ]),
     ],
   },
   {
@@ -117,6 +154,16 @@ const stage1Lessons: Lesson[] = [
     unlocks: [commandId("0"), commandId("$")],
     exercises: [
       ex("s1-l7-e1", "行末の文字を消せ", "const x", "const ", 2, ["$", "x"]),
+      ex("s1-l7-e2", "行末の2文字を消せ", "let n = 10;;;", "let n = 10;", 3, [
+        "$",
+        "x",
+      ]),
+      ex("s1-l7-e3", "末尾と先頭を消せ", "Xabc defX", "abc def", 4, [
+        "$",
+        "x",
+        "0",
+        "x",
+      ]),
     ],
   },
   {
@@ -127,6 +174,14 @@ const stage1Lessons: Lesson[] = [
     exercises: [
       ex("s1-l8-e1", "X まで飛んで消せ", "abcXdef", "abcdef", 3, ["f", "x"]),
       ex("s1-l8-e2", "カッコ内の文字を消せ", "call(Y)", "call()", 3, [
+        "f",
+        "x",
+      ]),
+      ex("s1-l8-e3", "セミコロンの手前を消せ", "wait;go", "wai;go", 3, [
+        "t",
+        "x",
+      ]),
+      ex("s1-l8-e4", "後半の X まで飛べ", "abc def gXhi", "abc def ghi", 3, [
         "f",
         "x",
       ]),
@@ -146,6 +201,19 @@ const stage1Lessons: Lesson[] = [
         2,
         ["G", "x"],
       ),
+      ex(
+        "s1-l9-e2",
+        "最終行の行末を消せ",
+        "one\ntwo\nthreeX",
+        "one\ntwo\nthree",
+        3,
+        ["G", "$", "x"],
+      ),
+      ex("s1-l9-e3", "末尾へ行って先頭へ戻れ", "Xone\ntwo", "one\ntwo", 4, [
+        "G",
+        "gg",
+        "x",
+      ]),
     ],
   },
   {
@@ -154,7 +222,11 @@ const stage1Lessons: Lesson[] = [
     brief: "i でカーソルの前、a で後ろから入力できる。Esc でノーマルに戻る。",
     unlocks: [commandId("i"), commandId("a")],
     note: "挿入モードから戻るのは Esc(または Ctrl-[)。癖をつけよう。",
-    exercises: [ex("s1-l10-e1", "先頭に文字を足せ", "ello", "hello", 3, ["i"])],
+    exercises: [
+      ex("s1-l10-e1", "先頭に文字を足せ", "ello", "hello", 3, ["i"]),
+      ex("s1-l10-e2", "末尾に ! を足せ", "vim", "vim!", 4, ["$", "a"]),
+      ex("s1-l10-e3", "抜けた i を足せ", "vm", "vim", 4, ["l", "i"]),
+    ],
   },
   {
     id: lessonId("s1-l11-o"),
@@ -163,6 +235,8 @@ const stage1Lessons: Lesson[] = [
     unlocks: [commandId("o"), commandId("O")],
     exercises: [
       ex("s1-l11-e1", "下に行を足せ", "first", "first\nsecond", 8, ["o"]),
+      ex("s1-l11-e2", "上に行を足せ", "second", "first\nsecond", 7, ["O"]),
+      ex("s1-l11-e3", "下に end を足せ", "start", "start\nend", 5, ["o"]),
     ],
   },
   {
@@ -177,6 +251,8 @@ const stage1Lessons: Lesson[] = [
       ex("s1-l12-e3", "2行まとめて消せ", "junk1\njunk2\nkeep", "keep", 3, [
         "dd",
       ]),
+      ex("s1-l12-e4", "4文字まとめて消せ", "XXXXok", "ok", 2, ["x"]),
+      ex("s1-l12-e5", "3行まとめて消せ", "j1\nj2\nj3\nkeep", "keep", 3, ["dd"]),
     ],
   },
 ];

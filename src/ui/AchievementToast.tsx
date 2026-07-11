@@ -5,6 +5,7 @@
  */
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect } from "react";
+import { playUnlock } from "./sound";
 import { useAppStore } from "./storeContext";
 
 export function AchievementToast() {
@@ -13,6 +14,7 @@ export function AchievementToast() {
 
   useEffect(() => {
     if (unlocked.length === 0) return;
+    playUnlock();
     const timer = setTimeout(dismiss, 4500);
     return () => clearTimeout(timer);
   }, [unlocked, dismiss]);
