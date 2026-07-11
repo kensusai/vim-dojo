@@ -1,17 +1,18 @@
 /**
- * Root component: boots persistence, then hands the profile to the practice
- * screen. Boot state is a discriminated union (docs/frontend.md) — no
- * boolean soup.
+ * Root component: boots persistence, builds the app store, then routes between
+ * the home and lesson screens. Boot state is a discriminated union
+ * (docs/frontend.md) — no boolean soup.
  */
 import { useEffect, useState } from "react";
-import { sampleDrillExercises } from "../core/curriculum/sampleDrill";
 import type { Clock, ProgressStore } from "../core/ports";
-import type { Profile } from "../core/profile";
-import { PracticeScreen } from "./PracticeScreen";
+import { createAppStore, type AppStore } from "./store";
+import { StoreProvider, useAppStore } from "./storeContext";
+import { HomeScreen } from "./HomeScreen";
+import { LessonScreen } from "./LessonScreen";
 
 type BootState =
   | { status: "loading" }
-  | { status: "ready"; store: ProgressStore; profile: Profile }
+  | { status: "ready"; appStore: AppStore }
   | { status: "error"; message: string };
 
 export function App({
@@ -29,7 +30,11 @@ export function App({
       try {
         const store = await openStore();
         const profile = await store.loadProfile();
-        if (!cancelled) setBoot({ status: "ready", store, profile });
+        if (!cancelled)
+          setBoot({
+            status: "ready",
+            appStore: createAppStore(store, clock, profile),
+          });
       } catch (error) {
         if (!cancelled)
           setBoot({
@@ -41,7 +46,7 @@ export function App({
     return () => {
       cancelled = true;
     };
-  }, [openStore]);
+  }, [openStore, clock]);
 
   switch (boot.status) {
     case "loading":
@@ -57,20 +62,29 @@ export function App({
           <p className="max-w-xl text-xs text-cream-faint">{boot.message}</p>
           <p className="text-xs text-cream-dim">
             ブラウザを再読み込みしても直らない場合は、エクスポート済みの JSON
-            からのインポートで復旧できます(未実装の画面は M8 で追加予定)。
+            からのインポートで復旧できます(M8 で追加予定)。
           </p>
         </main>
       );
     case "ready":
       return (
-        <PracticeScreen
-          exercises={sampleDrillExercises}
-          profile={boot.profile}
-          store={boot.store}
-          clock={clock}
-          onProfileChange={(profile) =>
-            setBoot((b) => (b.status === "ready" ? { ...b, profile } : b))
-          }
+        <StoreProvider store={boot.appStore}>
+          <Router />
+        </StoreProvider>
+      );
+  }
+}
+
+function Router() {
+  const route = useAppStore((s) => s.route);
+  switch (route.screen) {
+    case "home":
+      return <HomeScreen />;
+    case "lesson":
+      return (
+        <LessonScreen
+          stageIndex={route.stageIndex}
+          lessonIndex={route.lessonIndex}
         />
       );
   }

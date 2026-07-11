@@ -1,25 +1,29 @@
 /**
- * The practice screen (design/mockups/practice-c.html). Thin by design:
- * every judgment (clear, medal, XP, streak) comes from core; this file only
- * renders state and forwards intents.
+ * Lesson screen: plays a lesson's exercises in order (design/mockups/
+ * practice-c.html tone). Thin by design — clear/medal/XP/streak/unlock all
+ * come from core; this renders state and forwards intents. On finishing the
+ * last exercise it marks the lesson cleared (unlock R5, XP-once R16) and
+ * records the learning activity for the streak (R8).
  */
 import { useCallback, useEffect, useRef, useState } from "react";
+import { markLessonCleared } from "../core/curriculum/markLessonCleared";
+import { stages } from "../core/curriculum/stages";
 import { applyDrillAttempt, completeDrillSession } from "../core/applyProgress";
 import type { Attempt } from "../core/practice/attempt";
-import type { Exercise } from "../core/practice/exercise";
-import { judgeMedal, type Medal } from "../core/practice/medal";
+import { type Medal } from "../core/practice/medal";
 import {
   startPracticeSession,
   type PracticeSession,
 } from "../core/practice/session";
-import type { Clock, ProgressStore, VimMode } from "../core/ports";
-import type { Profile } from "../core/profile";
-import type { StreakOutcome } from "../core/progression/streak";
+import type { VimMode } from "../core/ports";
 import { levelProgress } from "../core/progression/xp";
+import type { StreakOutcome } from "../core/progression/streak";
 import {
   createVimEngine,
   type CodeMirrorVimEngine,
 } from "../vim/codeMirrorVimEngine";
+import { SenseiSprite } from "./Sensei";
+import { useAppStore } from "./storeContext";
 
 const MEDAL_WORD: Record<Medal, string> = {
   gold: "一本!!",
@@ -35,23 +39,27 @@ const MEDAL_ICON: Record<Medal, string> = {
 interface ClearInfo {
   attempt: Attempt;
   xpGained: number;
-  isLastExercise: boolean;
+  lessonComplete: boolean;
   streak: StreakOutcome | null;
 }
 
-export function PracticeScreen({
-  exercises,
-  profile,
-  store,
-  clock,
-  onProfileChange,
+export function LessonScreen({
+  stageIndex,
+  lessonIndex,
 }: {
-  exercises: Exercise[];
-  profile: Profile;
-  store: ProgressStore;
-  clock: Clock;
-  onProfileChange: (profile: Profile) => void;
+  stageIndex: number;
+  lessonIndex: number;
 }) {
+  const clock = useAppStore((s) => s.clock);
+  const store = useAppStore((s) => s.store);
+  const setProfile = useAppStore((s) => s.setProfile);
+  const navigate = useAppStore((s) => s.navigate);
+  const profile = useAppStore((s) => s.profile);
+  const profileRef = useRef(profile);
+  profileRef.current = profile;
+
+  const lesson = stages[stageIndex]?.lessons[lessonIndex];
+
   const hostRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<CodeMirrorVimEngine | null>(null);
   const sessionRef = useRef<PracticeSession | null>(null);
@@ -61,38 +69,35 @@ export function PracticeScreen({
   const [recentKeys, setRecentKeys] = useState<string[]>([]);
   const [mode, setMode] = useState<VimMode>("normal");
   const [clearInfo, setClearInfo] = useState<ClearInfo | null>(null);
-  const [results, setResults] = useState<(Medal | "abandoned" | null)[]>(() =>
-    exercises.map(() => null),
-  );
-  // Refs mirror the latest values for use inside engine/session callbacks.
-  const profileRef = useRef(profile);
-  profileRef.current = profile;
+  const [results, setResults] = useState<(Medal | "abandoned" | null)[]>([]);
 
-  const exercise = exercises[exerciseIndex];
+  const exercise = lesson?.exercises[exerciseIndex];
 
-  /** Persist an attempt and fold it into the profile (core does the math). */
-  const settleAttempt = useCallback(
-    async (attempt: Attempt, isLastExercise: boolean) => {
-      const { profile: afterAttempt, xpGained } = applyDrillAttempt(
-        profileRef.current,
-        attempt,
-      );
-      let next = afterAttempt;
+  const settle = useCallback(
+    async (attempt: Attempt, isLast: boolean) => {
+      const drill = applyDrillAttempt(profileRef.current, attempt);
+      let next = drill.profile;
+      let xpGained = drill.xpGained;
       let streak: StreakOutcome | null = null;
-      if (isLastExercise) {
-        const sessionOutcome = completeDrillSession(next, attempt.playedAt);
-        next = sessionOutcome.profile;
-        streak = sessionOutcome.streak;
+      if (isLast && lesson) {
+        const lessonOutcome = markLessonCleared(
+          next,
+          lesson.id,
+          attempt.playedAt,
+        );
+        next = lessonOutcome.profile;
+        xpGained += lessonOutcome.xpGained;
+        const session = completeDrillSession(next, attempt.playedAt);
+        next = session.profile;
+        streak = session.streak;
       }
-      onProfileChange(next);
+      setProfile(next);
       await store.appendAttempt(attempt);
-      await store.saveProfile(next);
       return { xpGained, streak };
     },
-    [onProfileChange, store],
+    [lesson, setProfile, store],
   );
 
-  /** (Re)start the current exercise on the engine. */
   const startExercise = useCallback(() => {
     const engine = engineRef.current;
     if (!engine || !exercise) return;
@@ -101,24 +106,33 @@ export function PracticeScreen({
     setClearInfo(null);
     const session = startPracticeSession({
       exercise,
-      source: "drill",
+      source: "lesson",
       engine,
       clock,
     });
     sessionRef.current = session;
+    const isLast =
+      lessonIndex >= 0 && exerciseIndex === (lesson?.exercises.length ?? 0) - 1;
     session.onCleared((attempt) => {
-      const isLast = exerciseIndex === exercises.length - 1;
-      setResults((rs) =>
-        rs.map((r, i) => (i === exerciseIndex ? attempt.medal : r)),
-      );
-      void settleAttempt(attempt, isLast).then(({ xpGained, streak }) => {
-        setClearInfo({ attempt, xpGained, isLastExercise: isLast, streak });
+      setResults((rs) => {
+        const copy = [...rs];
+        copy[exerciseIndex] = attempt.medal;
+        return copy;
+      });
+      void settle(attempt, isLast).then(({ xpGained, streak }) => {
+        setClearInfo({ attempt, xpGained, lessonComplete: isLast, streak });
       });
     });
     engine.focus();
-  }, [clock, exercise, exerciseIndex, exercises.length, settleAttempt]);
+  }, [
+    clock,
+    exercise,
+    exerciseIndex,
+    lesson?.exercises.length,
+    lessonIndex,
+    settle,
+  ]);
 
-  // Mount the engine once; wire its event streams into React state.
   useEffect(() => {
     if (!hostRef.current) return;
     const engine = createVimEngine(hostRef.current);
@@ -137,41 +151,39 @@ export function PracticeScreen({
     };
   }, []);
 
-  // Start / restart whenever the exercise changes (after engine mounts).
   useEffect(() => {
     startExercise();
   }, [startExercise]);
 
-  if (!exercise) return null;
+  useEffect(() => {
+    setResults(lesson ? lesson.exercises.map(() => null) : []);
+  }, [lesson]);
 
-  const abandonAndAdvance = () => {
-    const session = sessionRef.current;
-    if (!session || session.state() !== "playing") return;
-    const attempt = session.abandon();
-    const isLast = exerciseIndex === exercises.length - 1;
-    setResults((rs) =>
-      rs.map((r, i) => (i === exerciseIndex ? "abandoned" : r)),
+  if (!lesson || !exercise) {
+    return (
+      <div className="flex min-h-screen items-center justify-center font-mono text-cream-faint">
+        レッスンが見つかりません。
+        <button
+          className="ml-3 underline"
+          onClick={() => navigate({ screen: "home" })}
+        >
+          ホームへ
+        </button>
+      </div>
     );
-    void settleAttempt(attempt, isLast).then(({ streak }) => {
-      setClearInfo({ attempt, xpGained: 0, isLastExercise: isLast, streak });
-    });
-  };
+  }
 
   const retry = () => {
     const session = sessionRef.current;
     if (session && session.state() === "playing" && session.keystrokes() > 0) {
-      // A retry gives up the current attempt; it stays in the log (R2/analytics).
-      const attempt = session.abandon();
-      void store.appendAttempt(attempt);
+      void store.appendAttempt(session.abandon());
     }
     startExercise();
   };
 
   const advance = () => {
-    if (clearInfo?.isLastExercise) {
-      // Loop the sample session for now (M6 adds the home screen to return to).
-      setResults(exercises.map(() => null));
-      setExerciseIndex(0);
+    if (clearInfo?.lessonComplete) {
+      navigate({ screen: "home" });
     } else {
       setExerciseIndex((i) => i + 1);
     }
@@ -187,55 +199,46 @@ export function PracticeScreen({
         ? `🥈 まであと ${silverLine - keystrokes}`
         : "🥉 有効圏内";
 
-  const { level, intoLevel, neededForNext } = levelProgress(profile.xp);
-
   return (
     <div className="mx-auto flex min-h-screen max-w-[1440px] flex-col">
-      {/* HUD */}
       <header className="flex items-center justify-between border-b-3 border-ink bg-black/25 px-12 py-3 font-mono">
         <div className="flex items-center gap-4">
-          <span className="text-lg font-black tracking-widest">
-            VIM-DOJO<span className="blink text-matcha">▮</span>
-          </span>
-          <span className="text-lg font-black">{exercise.title}</span>
+          <button
+            type="button"
+            onClick={() => navigate({ screen: "home" })}
+            className="text-sm text-cream-faint hover:text-cream"
+          >
+            ← MAP
+          </button>
+          <span className="font-sans text-lg font-black">{exercise.title}</span>
           <span className="border-2 border-ink px-2 text-[10px] tracking-widest text-cream-faint">
-            DRILL · SAMPLE
+            {stages[stageIndex]?.title} · {lesson.title.split(" — ")[0]}
           </span>
         </div>
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2 text-[10px] tracking-widest text-cream-faint">
-            Lv.{level}
-            <span className="text-cream-dim">
-              {intoLevel}/{neededForNext}XP
-            </span>
-            🔥{profile.streak.current}
-          </div>
-          <div className="flex items-center gap-1" aria-label="セッション進行">
-            <span className="mr-2 text-[10px] tracking-widest text-cream-faint">
-              ROUND
-            </span>
-            {results.map((r, i) => (
-              <span
-                key={i}
-                className={`h-4 w-4 border-2 ${
-                  i === exerciseIndex && r === null
-                    ? "blink border-gold"
-                    : r === null
-                      ? "border-ink-bold bg-raised"
-                      : r === "abandoned"
-                        ? "border-shu-dark bg-shu/30"
-                        : "border-matcha-dim bg-matcha"
-                }`}
-              />
-            ))}
-            <span className="ml-2 text-[11px] text-cream-faint">
-              {exerciseIndex + 1}/{exercises.length}
-            </span>
-          </div>
+        <div className="flex items-center gap-1" aria-label="レッスン進行">
+          <span className="mr-2 text-[10px] tracking-widest text-cream-faint">
+            LESSON
+          </span>
+          {lesson.exercises.map((_, i) => (
+            <span
+              key={i}
+              className={`h-4 w-4 border-2 ${
+                i === exerciseIndex && results[i] == null
+                  ? "blink border-gold"
+                  : results[i] == null
+                    ? "border-ink-bold bg-raised"
+                    : results[i] === "abandoned"
+                      ? "border-shu-dark bg-shu/30"
+                      : "border-matcha-dim bg-matcha"
+              }`}
+            />
+          ))}
+          <span className="ml-2 text-[11px] text-cream-faint">
+            {exerciseIndex + 1}/{lesson.exercises.length}
+          </span>
         </div>
       </header>
 
-      {/* battle strip */}
       <div className="flex items-center justify-center gap-8 border-b-3 border-ink bg-black/35 py-3 font-mono">
         <div className="flex items-baseline gap-2">
           <span className="text-[10px] tracking-widest text-cream-faint">
@@ -261,14 +264,13 @@ export function PracticeScreen({
         <div className="text-sm text-cream-dim">PAR {exercise.par}</div>
       </div>
 
-      {/* main panes */}
       <main className="grid flex-1 grid-cols-[1fr_400px] gap-6 px-12 py-6">
         <section className="pixel-panel flex flex-col overflow-hidden !bg-editor">
           <div className="flex items-center justify-between border-b-3 border-ink bg-raised px-4 py-1.5 font-mono text-[10px] tracking-widest text-cream-faint">
             <span>BUFFER</span>
             <span>VIM EMULATION</span>
           </div>
-          <div ref={hostRef} className="editor-host min-h-[320px] flex-1" />
+          <div ref={hostRef} className="editor-host min-h-[300px] flex-1" />
           <div className="flex items-center justify-between border-t-3 border-ink bg-raised px-4 py-1.5 font-mono text-xs">
             <span className="bg-matcha px-3 font-black tracking-widest text-[#17260a]">
               {mode.toUpperCase()}
@@ -279,15 +281,24 @@ export function PracticeScreen({
 
         <aside className="flex flex-col gap-5">
           <div className="pixel-panel p-4">
+            <div className="mb-2 flex items-center gap-2 font-mono text-xs font-black tracking-[0.2em] text-matcha">
+              <SenseiSprite size={28} /> 師範のひとこと
+            </div>
+            <p className="text-sm text-cream-dim">{lesson.brief}</p>
+            {lesson.note && (
+              <p className="mt-2 border-l-2 border-ink-bold pl-2 text-xs text-cream-faint">
+                💡 {lesson.note}
+              </p>
+            )}
+          </div>
+
+          <div className="pixel-panel p-4">
             <div className="mb-2 font-mono text-xs font-black tracking-[0.2em] text-cream-dim">
               TARGET — この形にせよ
             </div>
             <pre className="overflow-x-auto border-2 border-ink bg-editor p-3 font-mono text-[13px] leading-7">
               {exercise.targetBuffer}
             </pre>
-            <div className="mt-2 text-xs text-cream-faint">
-              バッファが一致した瞬間に「一本」だ。
-            </div>
           </div>
 
           <div className="pixel-panel p-4">
@@ -306,30 +317,19 @@ export function PracticeScreen({
             </div>
           </div>
 
-          <div className="mt-auto flex gap-3">
-            <button
-              type="button"
-              onClick={retry}
-              className="btn-chunky flex-1 border-2 border-b-[5px] border-ink-bold bg-raised py-2.5 font-mono text-sm font-extrabold text-cream-dim"
-            >
-              やり直す
-            </button>
-            <button
-              type="button"
-              onClick={abandonAndAdvance}
-              className="btn-chunky flex-1 border-2 border-b-[5px] border-ink-bold bg-raised py-2.5 font-mono text-sm font-extrabold text-shu"
-            >
-              にげる
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={retry}
+            className="btn-chunky border-2 border-b-[5px] border-ink-bold bg-raised py-2.5 font-mono text-sm font-extrabold text-cream-dim"
+          >
+            やり直す
+          </button>
         </aside>
       </main>
 
       {clearInfo && (
         <ResultModal
           info={clearInfo}
-          profile={profile}
-          par={exercise.par}
           onAdvance={advance}
           onRetry={startExercise}
         />
@@ -340,21 +340,17 @@ export function PracticeScreen({
 
 function ResultModal({
   info,
-  profile,
-  par,
   onAdvance,
   onRetry,
 }: {
   info: ClearInfo;
-  profile: Profile;
-  par: number;
   onAdvance: () => void;
   onRetry: () => void;
 }) {
   const advanceRef = useRef<HTMLButtonElement>(null);
+  const profile = useAppStore((s) => s.profile);
   useEffect(() => advanceRef.current?.focus(), []);
-  const { attempt } = info;
-  const medal = attempt.medal;
+  const medal = info.attempt.medal;
   const { level, intoLevel, neededForNext } = levelProgress(profile.xp);
 
   return (
@@ -365,24 +361,22 @@ function ResultModal({
       className="fixed inset-0 z-10 flex items-center justify-center bg-black/70"
     >
       <div className="pixel-panel w-[520px] p-8 text-center [background:repeating-conic-gradient(from_0deg_at_50%_40%,rgb(255_210_94/0.08)_0deg_12deg,transparent_12deg_24deg),var(--color-surface)]">
-        {medal ? (
+        {medal && (
           <>
             <div className="ippon-pop text-6xl font-black tracking-wider text-gold [text-shadow:5px_5px_0_var(--color-shu-dark),8px_8px_0_rgb(0_0_0/0.6)]">
               {MEDAL_WORD[medal]}
             </div>
             <div className="mt-2 text-4xl">{MEDAL_ICON[medal]}</div>
             <div className="mt-2 font-mono text-sm text-cream-dim">
-              {attempt.keystrokes} KEYS / PAR {par}
-              {medal === judgeMedal(par, attempt.keystrokes) && null}
+              {info.attempt.keystrokes} KEYS
             </div>
           </>
-        ) : (
-          <>
-            <div className="text-4xl font-black text-cream-dim">逃げた…</div>
-            <div className="mt-2 font-mono text-sm text-cream-faint">
-              この一本はまた今度。試行は記録された。
-            </div>
-          </>
+        )}
+
+        {info.lessonComplete && (
+          <div className="mt-3 flex items-center justify-center gap-2 font-mono text-sm font-black text-matcha">
+            <SenseiSprite mood="hype" size={40} /> レッスン皆伝!! よくやった!!
+          </div>
         )}
 
         <div className="mt-4 flex justify-center gap-3 font-mono text-sm font-extrabold">
@@ -401,12 +395,6 @@ function ResultModal({
           )}
         </div>
 
-        {info.isLastExercise && (
-          <div className="mt-3 font-mono text-xs text-cream-dim">
-            セッション完了! 今日の修行はカウントされた 🔥
-          </div>
-        )}
-
         <div className="mt-6 flex gap-3">
           <button
             ref={advanceRef}
@@ -414,14 +402,14 @@ function ResultModal({
             onClick={onAdvance}
             className="btn-chunky flex-1 border-b-[6px] border-shu-dark bg-shu py-3 font-black tracking-widest text-[#fff6ec]"
           >
-            {info.isLastExercise ? "もう一周 ▶" : "次のお題 ▶"}
+            {info.lessonComplete ? "ホームへ ▶" : "次のお題 ▶"}
           </button>
           <button
             type="button"
             onClick={onRetry}
             className="btn-chunky flex-1 border-2 border-b-[5px] border-ink-bold bg-raised py-3 font-mono text-sm font-extrabold text-cream-dim"
           >
-            この題をやり直す
+            やり直す
           </button>
         </div>
       </div>

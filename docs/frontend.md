@@ -32,7 +32,7 @@ flowchart LR
 
 - **永続状態(Profile)**: core の型のまま `App` が保持し、変更は core の適用関数(`applyDrillAttempt` 等)→ `ProgressStore` 保存 → `onProfileChange` の一方向。
 - **画面状態**: 各画面の `useState`。判別可能ユニオンでモデル化(例: `BootState = loading | ready | error`)。boolean の組み合わせ禁止。
-- **zustand**: 画面が複数になり Profile を共有し始めたら導入(M6)。1画面のうちは入れない。
+- **zustand**: M6 で導入済み(`src/ui/store.ts` + `storeContext.tsx`)。Profile とルーティング(home/lesson)を全画面で共有。ロジックは持たず、core の適用関数の結果を保持して保存するだけ。
 - **サーバー状態**: 存在しない(ADR-0001)。TanStack Query 等は不要。
 
 ## ディレクトリ構成
