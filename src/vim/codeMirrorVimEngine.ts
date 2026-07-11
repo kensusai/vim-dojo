@@ -42,6 +42,8 @@ export interface CodeMirrorVimEngine extends VimEngine {
   typeText(text: string): void;
   /** Run an Ex command line, e.g. "%s/foo/bar/g" (tests, lesson replays). */
   sendEx(command: string): void;
+  /** Give the editor keyboard focus (call when an exercise starts). */
+  focus(): void;
   destroy(): void;
 }
 
@@ -127,6 +129,9 @@ export function createVimEngine(parent: Element): CodeMirrorVimEngine {
     },
     sendEx(command) {
       Vim.handleEx(cm(), command);
+    },
+    focus() {
+      view.focus();
     },
     destroy() {
       keystrokeListeners.clear();
