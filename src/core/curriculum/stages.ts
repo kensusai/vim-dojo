@@ -402,6 +402,7 @@ const stage2Lessons: Lesson[] = [
     title: ". — 直前の変更をリピート",
     brief:
       ". は最後の変更コマンドをもう一度実行する。同じ編集の繰り返しが一打に。vim 最強のキーのひとつ。",
+    note: "名著 Practical Vim は「1回の編集を . で繰り返せる形に組め」をドット公式と呼ぶ。上級者ほど多用する。",
     unlocks: [commandId(".")],
     exercises: [
       ex("s2-l9-e1", "前の2単語を消せ", "aa bb cc dd", "cc dd", 3, ["dw", "."]),
