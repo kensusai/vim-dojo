@@ -1,0 +1,888 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>vim-dojo — ホーム(案B: 道場×レトロゲーム)</title>
+    <style>
+      /* == デザイントークン(案B) ========================================== */
+      :root {
+        /* 色: 墨色の道場に、抹茶の緑と朱色 */
+        --bg-base: #15130e; /* 墨 */
+        --bg-surface: #1e1a13;
+        --bg-raised: #2a2419;
+        --border-ink: #453c28; /* 薄墨の枠線 */
+        --border-bold: #5c5033;
+        --text-primary: #f2ecdd; /* 生成り */
+        --text-secondary: #b0a68c;
+        --text-faint: #6f6650;
+        --matcha: #8fd44f; /* 成功・達成 */
+        --matcha-dim: #3c5a22;
+        --shu: #e8503a; /* 朱: 主要アクション・印 */
+        --shu-dark: #a33422;
+        --gold: #ffd166;
+        --freeze: #7cc7ff;
+        --paper: #efe6cf; /* 吹き出し・巻物 */
+        --paper-ink: #2b241a;
+        /* タイポグラフィ */
+        --font-ui:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans",
+          "Noto Sans JP", sans-serif;
+        --font-mono:
+          ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+        --fs-xs: 12px;
+        --fs-sm: 13px;
+        --fs-md: 15px;
+        --fs-lg: 18px;
+        --fs-xl: 26px;
+        --fs-hero: 34px;
+        /* 余白・角丸(レトロは角を立てる) */
+        --sp-1: 4px;
+        --sp-2: 8px;
+        --sp-3: 12px;
+        --sp-4: 16px;
+        --sp-5: 24px;
+        --sp-6: 32px;
+        --sp-7: 48px;
+        --radius-sm: 4px;
+        --radius-md: 6px;
+        /* レトロの影: ぼかさず落とす */
+        --drop: 4px 4px 0 rgba(0, 0, 0, 0.55);
+        --drop-sm: 3px 3px 0 rgba(0, 0, 0, 0.55);
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        background:
+          repeating-linear-gradient(
+            0deg,
+            transparent 0 3px,
+            rgba(0, 0, 0, 0.12) 3px 4px
+          ),
+          var(--bg-base);
+        color: var(--text-primary);
+        font-family: var(--font-ui);
+        font-size: var(--fs-md);
+        line-height: 1.6;
+      }
+      .frame {
+        width: 1440px;
+        margin: 0 auto;
+        min-height: 100vh;
+      }
+
+      /* == ヘッダー: 道場の看板 ============================================ */
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--sp-4) var(--sp-7);
+        border-bottom: 2px solid var(--border-ink);
+      }
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: var(--sp-3);
+        font-family: var(--font-mono);
+        font-size: 20px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+      }
+      .logo-mark {
+        width: 34px;
+        height: 34px;
+        background: var(--shu);
+        color: var(--paper);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: var(--fs-lg);
+        border-radius: var(--radius-sm);
+        box-shadow: var(--drop-sm);
+      }
+      .header-status {
+        display: flex;
+        align-items: center;
+        gap: var(--sp-4);
+      }
+
+      .belt-chip {
+        display: flex;
+        align-items: center;
+        gap: var(--sp-3);
+        background: var(--bg-raised);
+        border: 2px solid var(--border-ink);
+        border-radius: var(--radius-md);
+        padding: 8px 16px;
+        box-shadow: var(--drop-sm);
+      }
+      .belt-icon {
+        width: 44px;
+        height: 14px;
+        position: relative;
+        background: #8a5a2b;
+        border: 2px solid #3a2b1e;
+        border-radius: 2px;
+      }
+      .belt-icon::after {
+        content: "";
+        position: absolute;
+        left: 17px;
+        top: -4px;
+        width: 6px;
+        height: 18px;
+        background: #8a5a2b;
+        border: 2px solid #3a2b1e;
+      }
+      .belt-name {
+        font-weight: 800;
+        font-size: var(--fs-sm);
+      }
+      .belt-xp {
+        font-family: var(--font-mono);
+        font-size: var(--fs-xs);
+        color: var(--text-secondary);
+      }
+      .xp-blocks {
+        display: flex;
+        gap: 3px;
+        margin-top: 3px;
+      }
+      .xp-block {
+        width: 12px;
+        height: 8px;
+        background: var(--bg-base);
+        border: 1px solid var(--border-bold);
+      }
+      .xp-block.on {
+        background: var(--matcha);
+        border-color: var(--matcha);
+      }
+
+      .streak-chip {
+        display: flex;
+        align-items: center;
+        gap: var(--sp-2);
+        background: var(--bg-raised);
+        border: 2px solid var(--border-ink);
+        border-radius: var(--radius-md);
+        padding: 8px 16px;
+        box-shadow: var(--drop-sm);
+        font-family: var(--font-mono);
+      }
+      .streak-num {
+        font-size: 20px;
+        font-weight: 800;
+        color: var(--gold);
+      }
+      .streak-label {
+        font-size: var(--fs-xs);
+        color: var(--text-secondary);
+      }
+      .freeze {
+        font-size: var(--fs-xs);
+        color: var(--freeze);
+        margin-left: var(--sp-1);
+      }
+
+      /* == メイン ========================================================= */
+      .main {
+        display: grid;
+        grid-template-columns: 1fr 400px;
+        gap: var(--sp-6);
+        padding: var(--sp-6) var(--sp-7);
+      }
+      .col {
+        display: flex;
+        flex-direction: column;
+        gap: var(--sp-6);
+      }
+
+      /* == 師範と今日の修行 =============================================== */
+      .sensei-board {
+        display: flex;
+        gap: var(--sp-5);
+        align-items: flex-start;
+        background: var(--bg-surface);
+        border: 2px solid var(--border-ink);
+        border-radius: var(--radius-md);
+        padding: var(--sp-6);
+        box-shadow: var(--drop);
+      }
+      .sensei-sprite {
+        flex: none;
+        image-rendering: pixelated;
+      }
+      .sensei-body {
+        flex: 1;
+      }
+      .speech-bubble {
+        position: relative;
+        background: var(--paper);
+        color: var(--paper-ink);
+        border-radius: var(--radius-md);
+        padding: var(--sp-3) var(--sp-4);
+        font-weight: 700;
+        font-size: var(--fs-md);
+        box-shadow: var(--drop-sm);
+        margin-bottom: var(--sp-4);
+        display: inline-block;
+      }
+      .speech-bubble::before {
+        content: "";
+        position: absolute;
+        left: -10px;
+        top: 18px;
+        border: 6px solid transparent;
+        border-right-color: var(--paper);
+      }
+      .today-quest-title {
+        font-size: var(--fs-hero);
+        font-weight: 900;
+        margin-bottom: var(--sp-2);
+        letter-spacing: 0.02em;
+      }
+      .today-quest-sub {
+        color: var(--text-secondary);
+        font-size: var(--fs-sm);
+        margin-bottom: var(--sp-4);
+      }
+      .quest-tags {
+        display: flex;
+        gap: var(--sp-2);
+        margin-bottom: var(--sp-5);
+      }
+      .tag {
+        font-family: var(--font-mono);
+        font-size: var(--fs-xs);
+        font-weight: 700;
+        background: var(--bg-raised);
+        border: 2px solid var(--border-ink);
+        border-radius: var(--radius-sm);
+        padding: 3px 10px;
+        color: var(--text-secondary);
+      }
+      .tag.reward {
+        color: var(--gold);
+        border-color: #6b5a2c;
+      }
+      .btn-shu {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--sp-2);
+        background: var(--shu);
+        color: #fff7ee;
+        font-size: var(--fs-lg);
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        border: 2px solid var(--shu-dark);
+        border-bottom-width: 6px;
+        border-radius: var(--radius-md);
+        padding: 14px 36px;
+        cursor: pointer;
+        box-shadow: var(--drop);
+      }
+      .btn-key {
+        font-family: var(--font-mono);
+        font-size: var(--fs-xs);
+        background: rgba(0, 0, 0, 0.28);
+        border-radius: 3px;
+        padding: 1px 8px;
+        font-weight: 700;
+      }
+
+      /* 直近の修行記録(ストリーク帯) */
+      .week-strip {
+        display: flex;
+        gap: var(--sp-2);
+        margin-top: var(--sp-5);
+      }
+      .day {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        width: 46px;
+        font-family: var(--font-mono);
+      }
+      .day .d {
+        font-size: var(--fs-xs);
+        color: var(--text-faint);
+      }
+      .day .m {
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius-sm);
+        font-size: var(--fs-sm);
+        font-weight: 800;
+      }
+      .m.done {
+        background: var(--matcha-dim);
+        color: var(--matcha);
+        border: 2px solid var(--matcha);
+      }
+      .m.frozen {
+        background: rgba(124, 199, 255, 0.1);
+        color: var(--freeze);
+        border: 2px solid var(--freeze);
+      }
+      .m.today {
+        background: transparent;
+        color: var(--shu);
+        border: 2px dashed var(--shu);
+      }
+
+      /* == クエストマップ(巻) ============================================ */
+      .quest-map {
+        background: var(--bg-surface);
+        border: 2px solid var(--border-ink);
+        border-radius: var(--radius-md);
+        padding: var(--sp-6);
+        box-shadow: var(--drop);
+      }
+      .map-title {
+        display: flex;
+        align-items: center;
+        gap: var(--sp-3);
+        font-weight: 900;
+        font-size: var(--fs-lg);
+        margin-bottom: var(--sp-5);
+        letter-spacing: 0.05em;
+      }
+      .map-title .sub {
+        font-size: var(--fs-xs);
+        font-weight: 400;
+        color: var(--text-faint);
+        font-family: var(--font-mono);
+      }
+
+      .volume {
+        display: flex;
+        gap: var(--sp-4);
+        margin-bottom: var(--sp-5);
+      }
+      .volume:last-child {
+        margin-bottom: 0;
+      }
+      .volume-scroll {
+        flex: none;
+        width: 120px;
+        align-self: flex-start;
+        background: var(--paper);
+        color: var(--paper-ink);
+        border-radius: var(--radius-sm);
+        padding: var(--sp-2) var(--sp-3);
+        text-align: center;
+        font-weight: 800;
+        font-size: var(--fs-sm);
+        box-shadow: var(--drop-sm);
+        position: relative;
+      }
+      .volume-scroll::before,
+      .volume-scroll::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 6px;
+        background: var(--shu-dark);
+        border-radius: 3px;
+      }
+      .volume-scroll::before {
+        top: -4px;
+      }
+      .volume-scroll::after {
+        bottom: -4px;
+      }
+      .volume-scroll .vol-sub {
+        display: block;
+        font-size: 10px;
+        font-weight: 600;
+        color: #6d5f45;
+      }
+      .volume.locked .volume-scroll {
+        background: var(--bg-raised);
+        color: var(--text-faint);
+        box-shadow: none;
+      }
+      .volume.locked .volume-scroll::before,
+      .volume.locked .volume-scroll::after {
+        background: var(--border-ink);
+      }
+
+      .node-path {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 0;
+        flex-wrap: wrap;
+        row-gap: var(--sp-3);
+      }
+      .node {
+        width: 40px;
+        height: 40px;
+        flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-family: var(--font-mono);
+        font-size: var(--fs-sm);
+        font-weight: 800;
+      }
+      .node.stamped {
+        background: radial-gradient(circle at 35% 35%, #f06a52, var(--shu));
+        color: #fff2e8;
+        border: 2px solid var(--shu-dark);
+        box-shadow: var(--drop-sm);
+        transform: rotate(-6deg);
+      }
+      .node.stamped.r2 {
+        transform: rotate(4deg);
+      }
+      .node.current {
+        background: var(--bg-base);
+        color: var(--matcha);
+        border: 3px solid var(--matcha);
+        box-shadow:
+          0 0 0 4px rgba(143, 212, 79, 0.18),
+          var(--drop-sm);
+      }
+      .node.todo {
+        background: var(--bg-raised);
+        color: var(--text-faint);
+        border: 2px dashed var(--border-bold);
+      }
+      .path-seg {
+        width: 26px;
+        height: 4px;
+        flex: none;
+        background: repeating-linear-gradient(
+          90deg,
+          var(--border-bold) 0 8px,
+          transparent 8px 14px
+        );
+      }
+      .path-seg.walked {
+        background: repeating-linear-gradient(
+          90deg,
+          var(--matcha) 0 8px,
+          transparent 8px 14px
+        );
+      }
+      .node-label {
+        font-size: 10px;
+        color: var(--text-faint);
+      }
+      .current-callout {
+        margin-left: var(--sp-2);
+        font-size: var(--fs-xs);
+        font-weight: 800;
+        color: var(--matcha);
+        background: rgba(143, 212, 79, 0.1);
+        border: 1px solid var(--matcha-dim);
+        border-radius: var(--radius-sm);
+        padding: 2px 10px;
+      }
+      .volume.locked .lock-note {
+        font-size: var(--fs-xs);
+        color: var(--text-faint);
+        font-family: var(--font-mono);
+      }
+
+      /* == 右カラム ======================================================== */
+      .panel {
+        background: var(--bg-surface);
+        border: 2px solid var(--border-ink);
+        border-radius: var(--radius-md);
+        padding: var(--sp-5);
+        box-shadow: var(--drop);
+      }
+      .panel-title {
+        font-weight: 900;
+        font-size: var(--fs-md);
+        letter-spacing: 0.06em;
+        margin-bottom: var(--sp-4);
+        display: flex;
+        align-items: center;
+        gap: var(--sp-2);
+      }
+
+      /* 苦手克服の間 */
+      .fuda-row {
+        display: flex;
+        gap: var(--sp-3);
+        margin-bottom: var(--sp-4);
+      }
+      .fuda {
+        flex: 1;
+        text-align: center;
+        background: linear-gradient(180deg, #37301f, #2a2419);
+        border: 2px solid var(--border-bold);
+        border-radius: var(--radius-sm);
+        padding: var(--sp-3) 0 var(--sp-2);
+        font-family: var(--font-mono);
+        font-weight: 800;
+        font-size: var(--fs-lg);
+        box-shadow: var(--drop-sm);
+        position: relative;
+      }
+      .fuda::before {
+        content: "";
+        position: absolute;
+        top: 5px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--bg-base);
+        border: 1px solid var(--border-bold);
+      }
+      .fuda .miss {
+        display: block;
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--shu);
+      }
+      .btn-matcha {
+        width: 100%;
+        background: var(--matcha);
+        color: #16250b;
+        font-size: var(--fs-md);
+        font-weight: 900;
+        letter-spacing: 0.06em;
+        border: 2px solid #5c9430;
+        border-bottom-width: 6px;
+        border-radius: var(--radius-md);
+        padding: 12px 0;
+        cursor: pointer;
+        box-shadow: var(--drop-sm);
+      }
+
+      /* 腕前(成長) */
+      .skill-steps {
+        display: flex;
+        align-items: flex-end;
+        gap: 6px;
+        height: 96px;
+        padding: var(--sp-2) 0;
+      }
+      .step {
+        flex: 1;
+        background: var(--matcha-dim);
+        border: 2px solid var(--matcha);
+        border-bottom: none;
+        opacity: 0.9;
+      }
+      .skill-note {
+        font-size: var(--fs-xs);
+        color: var(--text-secondary);
+        font-family: var(--font-mono);
+      }
+      .skill-note b {
+        color: var(--matcha);
+      }
+
+      /* 集めた印 */
+      .stamp-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: var(--sp-4);
+      }
+      .stamp {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--sp-1);
+      }
+      .stamp-seal {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        font-size: var(--fs-sm);
+        color: #fff2e8;
+        text-align: center;
+        line-height: 1.15;
+        background: radial-gradient(circle at 35% 30%, #f06a52, var(--shu) 70%);
+        border: 2px solid var(--shu-dark);
+        transform: rotate(-5deg);
+        box-shadow: var(--drop-sm);
+      }
+      .stamp:nth-child(2n) .stamp-seal {
+        transform: rotate(4deg);
+      }
+      .stamp.locked .stamp-seal {
+        background: var(--bg-raised);
+        color: var(--text-faint);
+        border: 2px dashed var(--border-bold);
+        transform: none;
+        box-shadow: none;
+      }
+      .stamp-name {
+        font-size: 10px;
+        color: var(--text-secondary);
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="frame">
+      <header class="header">
+        <div class="logo"><span class="logo-mark">道</span>vim-dojo</div>
+        <div class="header-status">
+          <div class="belt-chip">
+            <span class="belt-icon"></span>
+            <div>
+              <div class="belt-name">
+                茶帯
+                <span style="color: var(--text-faint); font-weight: 600"
+                  >(七級)</span
+                >
+              </div>
+              <div class="xp-blocks">
+                <span class="xp-block on"></span
+                ><span class="xp-block on"></span
+                ><span class="xp-block on"></span
+                ><span class="xp-block on"></span
+                ><span class="xp-block on"></span
+                ><span class="xp-block on"></span><span class="xp-block"></span
+                ><span class="xp-block"></span><span class="xp-block"></span
+                ><span class="xp-block"></span>
+              </div>
+              <div class="belt-xp">黒帯まで 620 XP</div>
+            </div>
+          </div>
+          <div class="streak-chip">
+            <span style="font-size: 18px">🔥</span>
+            <span class="streak-num">12</span>
+            <span class="streak-label">日連続<br />修行中</span>
+            <span class="freeze">❄×1</span>
+          </div>
+        </div>
+      </header>
+
+      <main class="main">
+        <div class="col">
+          <!-- 師範 + 今日の修行 -->
+          <section class="sensei-board">
+            <svg
+              class="sensei-sprite"
+              width="112"
+              height="112"
+              viewBox="0 0 16 16"
+            >
+              <!-- ドット絵の猫師範(鉢巻) -->
+              <rect x="3" y="2" width="2" height="2" fill="#3a2b1e" />
+              <rect x="11" y="2" width="2" height="2" fill="#3a2b1e" />
+              <rect x="4" y="3" width="1" height="1" fill="#f0a860" />
+              <rect x="11" y="3" width="1" height="1" fill="#f0a860" />
+              <rect x="3" y="4" width="10" height="1" fill="#3a2b1e" />
+              <rect x="3" y="5" width="10" height="2" fill="#e8503a" />
+              <rect x="13" y="5" width="2" height="1" fill="#e8503a" />
+              <rect x="14" y="6" width="1" height="2" fill="#e8503a" />
+              <rect x="3" y="7" width="10" height="4" fill="#f0a860" />
+              <rect x="5" y="8" width="1" height="2" fill="#2b241a" />
+              <rect x="10" y="8" width="1" height="2" fill="#2b241a" />
+              <rect x="7" y="10" width="2" height="1" fill="#c96b4a" />
+              <rect x="2" y="9" width="1" height="1" fill="#3a2b1e" />
+              <rect x="13" y="9" width="1" height="1" fill="#3a2b1e" />
+              <rect x="3" y="11" width="10" height="1" fill="#3a2b1e" />
+              <rect x="4" y="12" width="8" height="3" fill="#4a4232" />
+              <rect x="4" y="13" width="8" height="1" fill="#2b241a" />
+            </svg>
+            <div class="sensei-body">
+              <div class="speech-bubble">
+                今日も一本いくか。昨日の <b>:s</b> はキレがあったぞ。
+              </div>
+              <div class="today-quest-title">
+                今日の修行: 重複した行を一行にまとめよ
+              </div>
+              <div class="today-quest-sub">
+                検索・置換の応用。解放済みのコマンドだけで組める。
+              </div>
+              <div class="quest-tags">
+                <span class="tag">パー 14キー</span>
+                <span class="tag">昨日 🥈</span>
+                <span class="tag reward">+15 XP</span>
+              </div>
+              <button class="btn-shu">
+                修行をはじめる <span class="btn-key">Enter</span>
+              </button>
+              <div class="week-strip">
+                <div class="day">
+                  <span class="d">土</span><span class="m done">✓</span>
+                </div>
+                <div class="day">
+                  <span class="d">日</span><span class="m done">✓</span>
+                </div>
+                <div class="day">
+                  <span class="d">月</span><span class="m done">✓</span>
+                </div>
+                <div class="day">
+                  <span class="d">火</span><span class="m frozen">❄</span>
+                </div>
+                <div class="day">
+                  <span class="d">水</span><span class="m done">✓</span>
+                </div>
+                <div class="day">
+                  <span class="d">木</span><span class="m done">✓</span>
+                </div>
+                <div class="day">
+                  <span class="d">金</span><span class="m done">✓</span>
+                </div>
+                <div class="day">
+                  <span class="d">今日</span><span class="m today">?</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- クエストマップ -->
+          <section class="quest-map">
+            <div class="map-title">
+              修行の道 <span class="sub">// クリアで朱印が押される</span>
+            </div>
+
+            <div class="volume">
+              <div class="volume-scroll">
+                第一巻<span class="vol-sub">基本移動</span>
+              </div>
+              <div class="node-path">
+                <span class="node stamped">印</span
+                ><span class="path-seg walked"></span>
+                <span class="node stamped r2">印</span
+                ><span class="path-seg walked"></span>
+                <span class="node stamped">印</span
+                ><span class="path-seg walked"></span>
+                <span class="node stamped r2">印</span
+                ><span class="path-seg walked"></span>
+                <span class="node stamped">印</span
+                ><span class="path-seg walked"></span>
+                <span class="node stamped r2">皆伝</span>
+              </div>
+            </div>
+
+            <div class="volume">
+              <div class="volume-scroll">
+                第二巻<span class="vol-sub">編集の型</span>
+              </div>
+              <div class="node-path">
+                <span class="node stamped">印</span
+                ><span class="path-seg walked"></span>
+                <span class="node stamped r2">印</span
+                ><span class="path-seg walked"></span>
+                <span class="node stamped">印</span
+                ><span class="path-seg walked"></span>
+                <span class="node current">diw</span>
+                <span class="current-callout">← いまここ「単語を消す型」</span>
+                <span class="path-seg"></span>
+                <span class="node todo">?</span><span class="path-seg"></span>
+                <span class="node todo">?</span>
+              </div>
+            </div>
+
+            <div class="volume locked">
+              <div class="volume-scroll">
+                第三巻<span class="vol-sub">検索と置換</span>
+              </div>
+              <div class="node-path">
+                <span class="lock-note">🔒 第二巻を皆伝すると道がひらく</span>
+              </div>
+            </div>
+
+            <div class="volume locked">
+              <div class="volume-scroll">
+                第四巻<span class="vol-sub">奥義</span>
+              </div>
+              <div class="node-path">
+                <span class="lock-note">🔒 レジスタ・複数の書を操る奥義</span>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="col">
+          <!-- 苦手克服の間 -->
+          <section class="panel">
+            <div class="panel-title">⚔️ 苦手克服の間</div>
+            <div class="fuda-row">
+              <div class="fuda">
+                ci"<span class="miss">直近 4回 銅止まり</span>
+              </div>
+              <div class="fuda">f;<span class="miss">迷いあり</span></div>
+              <div class="fuda">yiw<span class="miss">未修得の型</span></div>
+            </div>
+            <button class="btn-matcha">稽古する(5本勝負)</button>
+          </section>
+
+          <!-- 腕前 -->
+          <section class="panel">
+            <div class="panel-title">📈 腕前の推移</div>
+            <div class="skill-steps">
+              <div class="step" style="height: 22%"></div>
+              <div class="step" style="height: 30%"></div>
+              <div class="step" style="height: 28%"></div>
+              <div class="step" style="height: 46%"></div>
+              <div class="step" style="height: 52%"></div>
+              <div class="step" style="height: 66%"></div>
+              <div class="step" style="height: 74%"></div>
+              <div class="step" style="height: 88%"></div>
+            </div>
+            <div class="skill-note">
+              この30日で無駄打ちが <b>38% → 9%</b> に減った
+            </div>
+          </section>
+
+          <!-- 集めた印 -->
+          <section class="panel">
+            <div class="panel-title">🏮 集めた印</div>
+            <div class="stamp-grid">
+              <div class="stamp">
+                <div class="stamp-seal">初金</div>
+                <div class="stamp-name">初めての金</div>
+              </div>
+              <div class="stamp">
+                <div class="stamp-seal">七日</div>
+                <div class="stamp-name">7日連続</div>
+              </div>
+              <div class="stamp">
+                <div class="stamp-seal">脱矢印</div>
+                <div class="stamp-name">脱・矢印キー</div>
+              </div>
+              <div class="stamp locked">
+                <div class="stamp-seal">?</div>
+                <div class="stamp-name">30日連続</div>
+              </div>
+              <div class="stamp locked">
+                <div class="stamp-seal">?</div>
+                <div class="stamp-name">テキスト職人</div>
+              </div>
+              <div class="stamp locked">
+                <div class="stamp-seal">?</div>
+                <div class="stamp-name">正規表現使い</div>
+              </div>
+              <div class="stamp locked">
+                <div class="stamp-seal">?</div>
+                <div class="stamp-name">全巻皆伝</div>
+              </div>
+              <div class="stamp locked">
+                <div class="stamp-seal">?</div>
+                <div class="stamp-name">パー超え30</div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>
