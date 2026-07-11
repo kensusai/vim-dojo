@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>vim-dojo — ホーム</title>
+    <style>
+      /* == デザイントークン ================================================ */
+      :root {
+        /* 色 */
+        --bg-base: #0b0e14;
+        --bg-surface: #121724;
+        --bg-raised: #1a2132;
+        --border: #263049;
+        --border-strong: #34405e;
+        --text-primary: #e8ecf4;
+        --text-secondary: #9aa4bc;
+        --text-faint: #5c667f;
+        --accent: #3ddc84; /* ターミナルグリーン: 主要アクション */
+        --accent-dim: #1c5c3d;
+        --accent-glow: rgba(61, 220, 132, 0.25);
+        --flame: #ff9f43; /* ストリーク */
+        --freeze: #6cc7ff; /* フリーズ */
+        --gold: #ffd166;
+        --silver: #cdd6e4;
+        --bronze: #d98c5f;
+        --xp: #b085ff; /* XP・レベル */
+        /* タイポグラフィ */
+        --font-ui:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans",
+          "Noto Sans JP", sans-serif;
+        --font-mono:
+          ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+        --fs-xs: 12px;
+        --fs-sm: 13px;
+        --fs-md: 15px;
+        --fs-lg: 18px;
+        --fs-xl: 24px;
+        --fs-hero: 32px;
+        /* 余白・角丸 */
+        --sp-1: 4px;
+        --sp-2: 8px;
+        --sp-3: 12px;
+        --sp-4: 16px;
+        --sp-5: 24px;
+        --sp-6: 32px;
+        --sp-7: 48px;
+        --radius-sm: 8px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
+        --radius-pill: 999px;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        background: var(--bg-base);
+        color: var(--text-primary);
+        font-family: var(--font-ui);
+        font-size: var(--fs-md);
+        line-height: 1.6;
+      }
+      .frame {
+        width: 1440px;
+        margin: 0 auto;
+        min-height: 100vh;
+      }
+
+      /* == ヘッダー ======================================================== */
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--sp-4) var(--sp-7);
+        border-bottom: 1px solid var(--border);
+      }
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: var(--sp-2);
+        font-family: var(--font-mono);
+        font-size: var(--fs-lg);
+        font-weight: 700;
+      }
+      .logo-cursor {
+        width: 11px;
+        height: 22px;
+        background: var(--accent);
+        border-radius: 2px;
+        box-shadow: 0 0 12px var(--accent-glow);
+      }
+      .header-status {
+        display: flex;
+        align-items: center;
+        gap: var(--sp-5);
+      }
+      .level-chip {
+        display: flex;
+        align-items: center;
+        gap: var(--sp-3);
+      }
+      .level-badge {
+        font-family: var(--font-mono);
+        font-size: var(--fs-sm);
+        font-weight: 700;
+        color: var(--xp);
+        border: 1px solid var(--xp);
+        border-radius: var(--radius-pill);
+        padding: 2px 12px;
+      }
+      .xp-bar {
+        width: 160px;
+        height: 8px;
+        background: var(--bg-raised);
+        border-radius: var(--radius-pill);
+        overflow: hidden;
+      }
+      .xp-bar-fill {
+        width: 62%;
+        height: 100%;
+        background: linear-gradient(90deg, #7c5cff, var(--xp));
+        border-radius: var(--radius-pill);
+      }
+      .xp-label {
+        font-size: var(--fs-xs);
+        color: var(--text-secondary);
+        font-family: var(--font-mono);
+      }
+      .streak-chip {
+        display: flex;
+        align-items: center;
+        gap: var(--sp-2);
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-pill);
+        padding: 6px 16px;
+      }
+      .streak-count {
+        font-family: var(--font-mono);
+        font-weight: 700;
+        font-size: var(--fs-lg);
+        color: var(--flame);
+      }
+      .streak-unit {
+        font-size: var(--fs-xs);
+        color: var(--text-secondary);
+      }
+      .freeze-stock {
+        display: flex;
+        gap: var(--sp-1);
+        margin-left: var(--sp-2);
+      }
+
+      /* == メイン2カラム =================================================== */
+      .main {
+        display: grid;
+        grid-template-columns: 1fr 380px;
+        gap: var(--sp-5);
+        padding: var(--sp-6) var(--sp-7);
+      }
+      .col-left {
+        display: flex;
+        flex-direction: column;
+        gap: var(--sp-5);
+      }
+      .col-right {
+        display: flex;
+        flex-direction: column;
+        gap: var(--sp-5);
+      }
+      .card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: var(--sp-5);
+      }
+      .card-title {
+        font-size: var(--fs-sm);
+        font-weight: 700;
+        color: var(--text-secondary);
+        letter-spacing: 0.08em;
+        margin-bottom: var(--sp-4);
+      }
+
+      /* == デイリーチャレンジ(ヒーロー) ================================== */
+      .daily-hero {
+        position: relative;
+        overflow: hidden;
+        background:
+          radial-gradient(
+            600px 240px at 85% -20%,
+            var(--accent-glow),
+            transparent 70%
+          ),
+          linear-gradient(180deg, #16202f, var(--bg-surface));
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-lg);
+        padding: var(--sp-6);
+      }
+      .daily-label {
+        display: flex;
+        align-items: center;
+        gap: var(--sp-2);
+        font-size: var(--fs-sm);
+        color: var(--accent);
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        margin-bottom: var(--sp-3);
+      }
+      .daily-title {
+        font-size: var(--fs-hero);
+        font-weight: 800;
+        margin-bottom: var(--sp-2);
+      }
+      .daily-desc {
+        color: var(--text-secondary);
+        margin-bottom: var(--sp-5);
+      }
+      .daily-meta {
+        display: flex;
+        gap: var(--sp-4);
+        margin-bottom: var(--sp-5);
+      }
+      .meta-chip {
+        display: flex;
+        align-items: center;
+        gap: var(--sp-2);
+        background: var(--bg-raised);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 6px 14px;
+        font-family: var(--font-mono);
+        font-size: var(--fs-sm);
+      }
+      .meta-chip .k {
+        color: var(--text-faint);
+      }
+      .btn-primary {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--sp-2);
+        background: var(--accent);
+        color: #06281a;
+        font-weight: 800;
+        font-size: var(--fs-md);
+        border: none;
+        border-radius: var(--radius-md);
+        padding: 14px 32px;
+        box-shadow: 0 0 24px var(--accent-glow);
+        cursor: pointer;
+      }
+      .btn-key-hint {
+        font-family: var(--font-mono);
+        font-size: var(--fs-xs);
+        background: rgba(0, 0, 0, 0.25);
+        border-radius: 4px;
+        padding: 1px 7px;
+      }
+      .week-strip {
+        display: flex;
+        gap: var(--sp-2);
+        margin-top: var(--sp-5);
+      }
+      .day-dot {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--sp-1);
+        width: 44px;
+      }
+      .day-dot .d {
+        font-size: var(--fs-xs);
+        color: var(--text-faint);
+        font-family: var(--font-mono);
+      }
+      .day-dot .mark {
+        width: 28px;
+        height: 28px;
+        border-radius: var(--radius-pill);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: var(--fs-xs);
+      }
+      .mark.done {
+        background: var(--accent-dim);
+        color: var(--accent);
+        border: 1px solid var(--accent);
+      }
+      .mark.frozen {
+        background: rgba(108, 199, 255, 0.12);
+        color: var(--freeze);
+        border: 1px solid var(--freeze);
+      }
+      .mark.miss {
+        background: var(--bg-raised);
+        color: var(--text-faint);
+        border: 1px dashed var(--border-strong);
+      }
+      .mark.today {
+        background: transparent;
+        color: var(--accent);
+        border: 2px solid var(--accent);
+        font-weight: 700;
+        box-shadow: 0 0 10px var(--accent-glow);
+      }
+
+      /* == カリキュラム ==================================================== */
+      .stage-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--sp-3);
+      }
+      .stage-row {
+        display: flex;
+        align-items: center;
+        gap: var(--sp-4);
+        background: var(--bg-raised);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: var(--sp-4);
+      }
+      .stage-row.locked {
+        opacity: 0.55;
+      }
+      .stage-num {
+        width: 40px;
+        height: 40px;
+        flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-mono);
+        font-weight: 700;
+        border-radius: var(--radius-sm);
+        background: var(--bg-surface);
+        border: 1px solid var(--border-strong);
+      }
+      .stage-num.active {
+        color: var(--accent);
+        border-color: var(--accent);
+        box-shadow: 0 0 10px var(--accent-glow);
+      }
+      .stage-body {
+        flex: 1;
+      }
+      .stage-name {
+        font-weight: 700;
+        margin-bottom: var(--sp-1);
+      }
+      .stage-sub {
+        font-size: var(--fs-xs);
+        color: var(--text-secondary);
+        font-family: var(--font-mono);
+      }
+      .stage-progress {
+        width: 220px;
+      }
+      .progress-track {
+        height: 8px;
+        background: var(--bg-surface);
+        border-radius: var(--radius-pill);
+        overflow: hidden;
+      }
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+        border-radius: var(--radius-pill);
+      }
+      .progress-label {
+        font-size: var(--fs-xs);
+        color: var(--text-secondary);
+        font-family: var(--font-mono);
+        margin-top: var(--sp-1);
+        text-align: right;
+      }
+      .stage-cta {
+        font-family: var(--font-mono);
+        font-size: var(--fs-sm);
+        font-weight: 700;
+        color: var(--accent);
+        background: transparent;
+        border: 1px solid var(--accent);
+        border-radius: var(--radius-sm);
+        padding: 8px 18px;
+        cursor: pointer;
+      }
+
+      /* == 右カラム: ドリル・弱点 ========================================= */
+      .drill-card {
+        border-color: var(--border-strong);
+      }
+      .weak-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--sp-2);
+        margin-bottom: var(--sp-4);
+      }
+      .weak-chip {
+        font-family: var(--font-mono);
+        font-size: var(--fs-sm);
+        background: rgba(255, 159, 67, 0.08);
+        color: var(--flame);
+        border: 1px solid rgba(255, 159, 67, 0.4);
+        border-radius: var(--radius-sm);
+        padding: 4px 12px;
+      }
+      .btn-secondary {
+        width: 100%;
+        background: var(--bg-raised);
+        color: var(--text-primary);
+        font-weight: 700;
+        font-size: var(--fs-md);
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-md);
+        padding: 12px 0;
+        cursor: pointer;
+      }
+
+      /* == 成長グラフ ====================================================== */
+      .chart-wrap {
+        margin-top: var(--sp-2);
+      }
+      .chart-caption {
+        display: flex;
+        justify-content: space-between;
+        font-size: var(--fs-xs);
+        color: var(--text-faint);
+        font-family: var(--font-mono);
+        margin-top: var(--sp-2);
+      }
+
+      /* == 実績 =========================================================== */
+      .badge-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: var(--sp-3);
+      }
+      .badge {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--sp-2);
+        text-align: center;
+      }
+      .badge-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: var(--radius-pill);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg-raised);
+        border: 1px solid var(--border-strong);
+        font-size: 22px;
+      }
+      .badge.unlocked .badge-icon {
+        border-color: var(--gold);
+        box-shadow: 0 0 14px rgba(255, 209, 102, 0.25);
+      }
+      .badge.locked {
+        opacity: 0.4;
+      }
+      .badge-name {
+        font-size: var(--fs-xs);
+        color: var(--text-secondary);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="frame">
+      <header class="header">
+        <div class="logo"><span class="logo-cursor"></span>vim-dojo</div>
+        <div class="header-status">
+          <div class="level-chip">
+            <span class="level-badge">Lv.7</span>
+            <div>
+              <div class="xp-bar"><div class="xp-bar-fill"></div></div>
+              <div class="xp-label">2,180 / 2,800 XP</div>
+            </div>
+          </div>
+          <div class="streak-chip">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M12 2c1 4-3 5.5-3 9a3 3 0 0 0 6 0c0-1.5-.8-2.6-.8-2.6S17 10 17 13a5 5 0 0 1-10 0c0-5 5-6.5 5-11z"
+                fill="#ff9f43"
+              />
+            </svg>
+            <span class="streak-count">12</span
+            ><span class="streak-unit">日連続</span>
+            <span class="freeze-stock">
+              <svg width="14" height="14" viewBox="0 0 24 24">
+                <path
+                  d="M12 2v20M4 6l16 12M20 6L4 18"
+                  stroke="#6cc7ff"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+              </svg>
+              <svg width="14" height="14" viewBox="0 0 24 24">
+                <path
+                  d="M12 2v20M4 6l16 12M20 6L4 18"
+                  stroke="#6cc7ff"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  opacity="0.25"
+                />
+              </svg>
+            </span>
+          </div>
+        </div>
+      </header>
+
+      <main class="main">
+        <div class="col-left">
+          <section class="daily-hero">
+            <div class="daily-label">
+              <svg width="14" height="14" viewBox="0 0 24 24">
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="9"
+                  stroke="#3ddc84"
+                  stroke-width="2"
+                  fill="none"
+                />
+                <path
+                  d="M12 7v5l3 3"
+                  stroke="#3ddc84"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  fill="none"
+                />
+              </svg>
+              デイリーチャレンジ — 7月11日(土)
+            </div>
+            <h1 class="daily-title">重複した行を1行にまとめよ</h1>
+            <p class="daily-desc">
+              今日のお題は「検索・置換」の応用。解放済みのコマンドだけでクリアできます。
+            </p>
+            <div class="daily-meta">
+              <span class="meta-chip"><span class="k">パー</span> 14 キー</span>
+              <span class="meta-chip"
+                ><span class="k">昨日の結果</span> 🥈 銀 (+2)</span
+              >
+              <span class="meta-chip"><span class="k">報酬</span> +15 XP</span>
+            </div>
+            <button class="btn-primary">
+              挑戦する <span class="btn-key-hint">Enter</span>
+            </button>
+            <div class="week-strip">
+              <div class="day-dot">
+                <span class="d">土</span><span class="mark done">✓</span>
+              </div>
+              <div class="day-dot">
+                <span class="d">日</span><span class="mark done">✓</span>
+              </div>
+              <div class="day-dot">
+                <span class="d">月</span><span class="mark done">✓</span>
+              </div>
+              <div class="day-dot">
+                <span class="d">火</span><span class="mark frozen">❄</span>
+              </div>
+              <div class="day-dot">
+                <span class="d">水</span><span class="mark done">✓</span>
+              </div>
+              <div class="day-dot">
+                <span class="d">木</span><span class="mark done">✓</span>
+              </div>
+              <div class="day-dot">
+                <span class="d">金</span><span class="mark done">✓</span>
+              </div>
+              <div class="day-dot">
+                <span class="d">今日</span><span class="mark today">!</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="card curriculum">
+            <div class="card-title">カリキュラム</div>
+            <div class="stage-list">
+              <div class="stage-row">
+                <div class="stage-num">1</div>
+                <div class="stage-body">
+                  <div class="stage-name">基本移動・モード操作</div>
+                  <div class="stage-sub">h j k l · w b e · f t · gg G</div>
+                </div>
+                <div class="stage-progress">
+                  <div class="progress-track">
+                    <div class="progress-fill" style="width: 100%"></div>
+                  </div>
+                  <div class="progress-label">12/12 レッスン · 🥇×9</div>
+                </div>
+                <button class="stage-cta">復習</button>
+              </div>
+              <div class="stage-row">
+                <div class="stage-num active">2</div>
+                <div class="stage-body">
+                  <div class="stage-name">
+                    編集オペレータ + テキストオブジェクト
+                  </div>
+                  <div class="stage-sub">d c y · iw i" ip · . (リピート)</div>
+                </div>
+                <div class="stage-progress">
+                  <div class="progress-track">
+                    <div class="progress-fill" style="width: 55%"></div>
+                  </div>
+                  <div class="progress-label">6/11 レッスン · 🥇×3</div>
+                </div>
+                <button class="stage-cta">続きから</button>
+              </div>
+              <div class="stage-row locked">
+                <div class="stage-num">3</div>
+                <div class="stage-body">
+                  <div class="stage-name">検索・置換・グローバルコマンド</div>
+                  <div class="stage-sub">/ ? · :s :g · 正規表現</div>
+                </div>
+                <div class="stage-progress">
+                  <div class="progress-track">
+                    <div class="progress-fill" style="width: 0%"></div>
+                  </div>
+                  <div class="progress-label">ステージ2クリアで解放</div>
+                </div>
+              </div>
+              <div class="stage-row locked">
+                <div class="stage-num">4</div>
+                <div class="stage-body">
+                  <div class="stage-name">
+                    上級 — レジスタ・複数ファイル操作
+                  </div>
+                  <div class="stage-sub">"a〜"z · :b :sp · Ctrl-w</div>
+                </div>
+                <div class="stage-progress">
+                  <div class="progress-track">
+                    <div class="progress-fill" style="width: 0%"></div>
+                  </div>
+                  <div class="progress-label">ステージ3クリアで解放</div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="col-right">
+          <section class="card drill-card">
+            <div class="card-title">弱点ドリル</div>
+            <div class="weak-chips">
+              <span class="weak-chip">ci"</span>
+              <span class="weak-chip">f→;</span>
+              <span class="weak-chip">yiw</span>
+            </div>
+            <p
+              style="
+                font-size: var(--fs-sm);
+                color: var(--text-secondary);
+                margin-bottom: var(--sp-4);
+              "
+            >
+              直近の成績から苦手コマンドを検出しました。5問のドリルで克服しましょう。
+            </p>
+            <button class="btn-secondary">ドリルを始める(5問)</button>
+          </section>
+
+          <section class="card growth-card">
+            <div class="card-title">キーストローク効率(30日)</div>
+            <div class="chart-wrap">
+              <svg
+                width="100%"
+                height="120"
+                viewBox="0 0 320 120"
+                preserveAspectRatio="none"
+              >
+                <defs>
+                  <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+                    <stop
+                      offset="0%"
+                      stop-color="#3ddc84"
+                      stop-opacity="0.35"
+                    />
+                    <stop offset="100%" stop-color="#3ddc84" stop-opacity="0" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M0,95 L40,88 L80,90 L120,72 L160,66 L200,52 L240,45 L280,38 L320,28"
+                  stroke="#3ddc84"
+                  stroke-width="2.5"
+                  fill="none"
+                />
+                <path
+                  d="M0,95 L40,88 L80,90 L120,72 L160,66 L200,52 L240,45 L280,38 L320,28 L320,120 L0,120 Z"
+                  fill="url(#g)"
+                />
+              </svg>
+              <div class="chart-caption">
+                <span>6/11</span><span>パー比 +38% → +9%</span><span>7/11</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="card achievements-card">
+            <div class="card-title">実績</div>
+            <div class="badge-grid">
+              <div class="badge unlocked">
+                <div class="badge-icon">🥇</div>
+                <div class="badge-name">初めての金</div>
+              </div>
+              <div class="badge unlocked">
+                <div class="badge-icon">🔥</div>
+                <div class="badge-name">7日連続</div>
+              </div>
+              <div class="badge unlocked">
+                <div class="badge-icon">⌨️</div>
+                <div class="badge-name">脱・矢印キー</div>
+              </div>
+              <div class="badge locked">
+                <div class="badge-icon">🌊</div>
+                <div class="badge-name">30日連続</div>
+              </div>
+              <div class="badge locked">
+                <div class="badge-icon">✂️</div>
+                <div class="badge-name">テキスト職人</div>
+              </div>
+              <div class="badge locked">
+                <div class="badge-icon">🔍</div>
+                <div class="badge-name">正規表現使い</div>
+              </div>
+              <div class="badge locked">
+                <div class="badge-icon">📚</div>
+                <div class="badge-name">全課程修了</div>
+              </div>
+              <div class="badge locked">
+                <div class="badge-icon">💎</div>
+                <div class="badge-name">パー超え30回</div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>
