@@ -321,6 +321,18 @@ export function HomeScreen() {
             <span className="text-xs font-normal text-cream-faint">
               — レッスンをクリアして道を進め
             </span>
+            <span className="ml-auto flex items-center gap-3 text-[11px] font-normal text-cream-faint">
+              <span>
+                <span className="font-black text-matcha">✓</span> クリア済み
+              </span>
+              <span>
+                <span className="font-black text-gold">▶</span>{" "}
+                いまここ(次のレッスン)
+              </span>
+              <span>
+                <span className="font-black">?</span> 未開放
+              </span>
+            </span>
           </div>
           <div className="flex flex-col gap-5">
             {stages.map((stage, stageIndex) => {
@@ -495,18 +507,28 @@ function LessonNode({
         : "border-ink-bold border-dashed text-cream-faint shadow-none";
   return (
     <>
-      <button
-        type="button"
-        disabled={status === "locked"}
-        onClick={onClick}
-        aria-label={`${label} (${status})`}
-        className={`${base} ${style} ${status === "locked" ? "cursor-not-allowed" : "cursor-pointer"}`}
-      >
-        {status === "cleared" ? "✓" : status === "current" ? "!" : "?"}
-      </button>
+      <span className="flex flex-col items-center gap-1">
+        <button
+          type="button"
+          disabled={status === "locked"}
+          onClick={onClick}
+          title={`${label} — ${status === "cleared" ? "クリア済み" : status === "current" ? "次のレッスン" : "未開放"}`}
+          aria-label={`${label} (${status})`}
+          className={`${base} ${style} ${status === "locked" ? "cursor-not-allowed" : "cursor-pointer"}`}
+        >
+          {status === "cleared" ? "✓" : status === "current" ? "▶" : "?"}
+        </button>
+        <span
+          className={`max-w-14 truncate font-mono text-[10px] ${
+            status === "current" ? "font-black text-gold" : "text-cream-faint"
+          }`}
+        >
+          {label}
+        </span>
+      </span>
       {!isLast && (
         <span
-          className={`h-1.5 w-5 flex-none ${
+          className={`mb-5 h-1.5 w-5 flex-none self-center ${
             status === "cleared"
               ? "[background:repeating-linear-gradient(90deg,var(--color-matcha)_0_6px,transparent_6px_11px)]"
               : "[background:repeating-linear-gradient(90deg,var(--color-ink-bold)_0_6px,transparent_6px_11px)]"
