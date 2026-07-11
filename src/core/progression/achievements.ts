@@ -81,7 +81,7 @@ export const achievementDefs: AchievementDef[] = [
   {
     id: achievementId("level-5"),
     icon: "🥋",
-    name: "五段の构え",
+    name: "五段の構え",
     description: "レベル5に到達する",
     isSatisfied: (p) => levelFromXp(p.xp) >= 5,
   },
