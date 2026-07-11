@@ -11,7 +11,7 @@
  */
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { EditorState } from "@codemirror/state";
-import { EditorView, keymap } from "@codemirror/view";
+import { drawSelection, EditorView, keymap } from "@codemirror/view";
 import { getCM, Vim, vim } from "@replit/codemirror-vim";
 import type { VimEngine, VimMode } from "../core/ports";
 
@@ -65,6 +65,9 @@ export function createVimEngine(parent: Element): CodeMirrorVimEngine {
       extensions: [
         // vim() must precede other keymaps so it sees keys first.
         vim(),
+        // draw the insert-mode caret (without this only vim's normal-mode
+        // fat cursor is visible — playtest bug)
+        drawSelection({ cursorBlinkRate: 0 }), // steady caret: learners always see where they are
         history(),
         keymap.of([...defaultKeymap, ...historyKeymap]),
         EditorView.updateListener.of((update) => {

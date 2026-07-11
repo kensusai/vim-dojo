@@ -220,11 +220,15 @@
     border-right: 1px solid var(--color-ink);
     padding-right: 8px;
   }
-  .editor-host .cm-cursor,
   .editor-host .cm-fat-cursor {
     background: var(--color-matcha) !important;
     color: #17260a !important;
     border: none;
+  }
+  /* insert-mode caret: a bright bar so you always know where you are
+     (!important: CodeMirror's injected theme wins the cascade otherwise) */
+  .editor-host .cm-editor .cm-cursor {
+    border-left: 3px solid var(--color-matcha) !important;
   }
   .editor-host .cm-content {
     caret-color: var(--color-matcha);
