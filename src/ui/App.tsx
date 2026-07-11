@@ -7,6 +7,8 @@ import { useEffect, useState } from "react";
 import type { Clock, ProgressStore } from "../core/ports";
 import { createAppStore, type AppStore } from "./store";
 import { StoreProvider, useAppStore } from "./storeContext";
+import { DailyScreen } from "./DailyScreen";
+import { DrillScreen } from "./DrillScreen";
 import { HomeScreen } from "./HomeScreen";
 import { LessonScreen } from "./LessonScreen";
 
@@ -83,9 +85,14 @@ function Router() {
     case "lesson":
       return (
         <LessonScreen
+          key={`${route.stageIndex}-${route.lessonIndex}`}
           stageIndex={route.stageIndex}
           lessonIndex={route.lessonIndex}
         />
       );
+    case "daily":
+      return <DailyScreen />;
+    case "drill":
+      return <DrillScreen />;
   }
 }

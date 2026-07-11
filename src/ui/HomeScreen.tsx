@@ -3,11 +3,17 @@
  * the day's greeting, and the world map of stages/lessons. All status is
  * derived from core (curriculum status, level, streak); this file renders it.
  */
+import { useEffect, useState } from "react";
+import { weakCommands } from "../core/analytics/weakness";
+import { resolveDailyChallenge } from "../core/daily";
 import {
   stageLessonStatuses,
   type LessonStatus,
 } from "../core/curriculum/curriculum";
 import { stages } from "../core/curriculum/stages";
+import type { CommandId } from "../core/ids";
+import { localDateOf } from "../core/localDate";
+import type { DailyChallengeRecord } from "../core/ports";
 import { levelProgress } from "../core/progression/xp";
 import { beltForLevel } from "../core/progression/belt";
 import { SenseiSprite, SpeechBubble } from "./Sensei";
@@ -16,8 +22,30 @@ import { useAppStore } from "./storeContext";
 export function HomeScreen() {
   const profile = useAppStore((s) => s.profile);
   const navigate = useAppStore((s) => s.navigate);
+  const store = useAppStore((s) => s.store);
+  const clock = useAppStore((s) => s.clock);
   const { level, intoLevel, neededForNext } = levelProgress(profile.xp);
   const belt = beltForLevel(level);
+
+  // Today's quest and weak commands load after mount — never on the boot
+  // path (docs/database.md パフォーマンス方針). Both render progressively.
+  const [daily, setDaily] = useState<DailyChallengeRecord | null>(null);
+  const [weak, setWeak] = useState<CommandId[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const today = localDateOf(clock.now());
+      const existing = await store.loadDailyChallenge(today);
+      const record = resolveDailyChallenge(existing, today, profile);
+      if (!cancelled) setDaily(record);
+      const attempts = await store.loadAttempts();
+      if (!cancelled) setWeak(weakCommands(attempts));
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Load once per visit; profile changes while on screen don't re-resolve.
+  }, [clock, store]); // eslint-disable-line -- profile intentionally omitted
 
   // The next playable lesson (first "current" across stages), for the CTA.
   const next = (() => {
@@ -114,7 +142,50 @@ export function HomeScreen() {
                 </>
               )}
             </SpeechBubble>
-            {next ? (
+            {daily ? (
+              <>
+                <div className="mb-1 font-mono text-xs font-black tracking-[0.3em] text-gold">
+                  ▶ TODAY&apos;S QUEST — {daily.date}
+                </div>
+                <h1 className="mb-3 text-3xl font-black [text-shadow:4px_4px_0_rgb(0_0_0/0.45)]">
+                  {daily.exercise.title}
+                </h1>
+                <div className="mb-4 flex gap-2 font-mono text-xs font-extrabold">
+                  <span className="border-2 border-ink bg-black/35 px-3 py-0.5">
+                    PAR {daily.exercise.par}
+                  </span>
+                  <span
+                    className={`border-2 border-ink bg-black/35 px-3 py-0.5 ${daily.xpGranted ? "text-matcha" : "text-gold"}`}
+                  >
+                    {daily.xpGranted ? "本日クリア済 ✓" : "REWARD +15XP〜"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => navigate({ screen: "daily" })}
+                    className="btn-chunky inline-flex items-center gap-3 border-b-8 border-shu-dark bg-shu px-11 py-4 text-xl font-black tracking-widest text-[#fff6ec]"
+                  >
+                    {daily.xpGranted ? "ベスト更新を狙う" : "挑戦する"}
+                  </button>
+                  {next && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate({
+                          screen: "lesson",
+                          stageIndex: next.stageIndex,
+                          lessonIndex: next.lessonIndex,
+                        })
+                      }
+                      className="btn-chunky border-2 border-b-[6px] border-ink-bold bg-raised px-6 py-3 font-mono text-sm font-extrabold text-cream-dim"
+                    >
+                      レッスンへ: {next.lesson.title.split(" — ")[0]}
+                    </button>
+                  )}
+                </div>
+              </>
+            ) : next ? (
               <>
                 <div className="mb-1 font-mono text-xs font-black tracking-[0.3em] text-matcha">
                   ▶ NEXT LESSON
@@ -146,6 +217,38 @@ export function HomeScreen() {
             )}
           </div>
         </section>
+
+        {/* WANTED: weak-command drill */}
+        {daily && (
+          <section className="pixel-panel flex items-center gap-6 p-6">
+            <div className="font-mono text-sm font-black tracking-[0.15em]">
+              ⚔️ WANTED — 弱点ドリル
+            </div>
+            <div className="flex flex-1 flex-wrap gap-2">
+              {weak.length > 0 ? (
+                weak.slice(0, 5).map((command) => (
+                  <span
+                    key={command}
+                    className="border-2 border-shu-dark bg-[#241512] px-3 py-1 font-mono text-sm font-black text-shu"
+                  >
+                    👾 {command}
+                  </span>
+                ))
+              ) : (
+                <span className="font-mono text-xs text-cream-faint">
+                  いまのところ弱点なし。腕を落とすなよ。
+                </span>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate({ screen: "drill" })}
+              className="btn-chunky border-2 border-b-[6px] border-[#567f2b] bg-matcha px-8 py-3 font-black tracking-widest text-[#17260a]"
+            >
+              たたかう(5問)
+            </button>
+          </section>
+        )}
 
         {/* World map */}
         <section className="pixel-panel p-8">

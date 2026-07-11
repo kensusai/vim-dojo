@@ -10,7 +10,9 @@ import type { Profile } from "../core/profile";
 
 export type Route =
   | { screen: "home" }
-  | { screen: "lesson"; stageIndex: number; lessonIndex: number };
+  | { screen: "lesson"; stageIndex: number; lessonIndex: number }
+  | { screen: "daily" }
+  | { screen: "drill" };
 
 interface AppState {
   store: ProgressStore;

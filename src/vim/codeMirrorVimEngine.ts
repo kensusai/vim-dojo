@@ -109,6 +109,13 @@ export function createVimEngine(parent: Element): CodeMirrorVimEngine {
   return {
     view,
     reset(initialBuffer: string) {
+      // Vim keeps module-global state (jump list, registers, search history).
+      // A stale jump mark from a longer previous exercise crashes `G` on a
+      // shorter buffer (RangeError in recordJumpPosition), so wipe it —
+      // exercises are independent anyway.
+      Vim.resetVimGlobalState_();
+      // The Y remap lives in that global state; reapply it (domain.md P9).
+      Vim.map("Y", "y$", "normal");
       view.setState(makeState(initialBuffer));
       mode = "normal";
       attachModeTracking();

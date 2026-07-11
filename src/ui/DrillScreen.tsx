@@ -1,49 +1,78 @@
 /**
- * Lesson screen on PracticePlayer: plays a lesson's exercises in order; the
- * last clear marks the lesson cleared (unlock R5, XP-once R16) and records
- * the learning activity (streak R8).
+ * Drill screen: five generated exercises weighted toward weak commands
+ * (R19, P6). Completing the session counts as the day's learning activity.
  */
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { weakCommands } from "../core/analytics/weakness";
 import { applyDrillAttempt, completeDrillSession } from "../core/applyProgress";
-import { markLessonCleared } from "../core/curriculum/markLessonCleared";
+import { unlockedCommands } from "../core/curriculum/curriculum";
 import { stages } from "../core/curriculum/stages";
+import { generateDrill } from "../core/generation/generate";
+import type { Exercise } from "../core/practice/exercise";
 import { levelProgress } from "../core/progression/xp";
 import {
   MedalHeadline,
   PracticePlayer,
   type FinishedInfo,
 } from "./PracticePlayer";
-import { SenseiSprite } from "./Sensei";
 import { useAppStore } from "./storeContext";
 
-export function LessonScreen({
-  stageIndex,
-  lessonIndex,
-}: {
-  stageIndex: number;
-  lessonIndex: number;
-}) {
+type State =
+  | { status: "loading" }
+  | { status: "unavailable" }
+  | { status: "ready"; exercises: Exercise[] };
+
+export function DrillScreen() {
   const store = useAppStore((s) => s.store);
+  const clock = useAppStore((s) => s.clock);
   const profile = useAppStore((s) => s.profile);
   const setProfile = useAppStore((s) => s.setProfile);
   const navigate = useAppStore((s) => s.navigate);
+  const [state, setState] = useState<State>({ status: "loading" });
   const [lastXp, setLastXp] = useState(0);
   const profileRef = useRef(profile);
   profileRef.current = profile;
 
-  const lesson = stages[stageIndex]?.lessons[lessonIndex];
-  if (!lesson || lesson.exercises.length === 0) {
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const attempts = await store.loadAttempts(); // analytics path, not boot
+      if (cancelled) return;
+      const exercises = generateDrill({
+        seed: clock.now().getTime().toString(),
+        unlocked: unlockedCommands(profileRef.current, stages),
+        weakCommands: weakCommands(attempts),
+      });
+      setState(
+        exercises.length === 0
+          ? { status: "unavailable" }
+          : { status: "ready", exercises },
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [clock, store]);
+
+  if (state.status === "loading") {
     return (
-      <div className="flex min-h-screen items-center justify-center font-mono text-cream-faint">
-        レッスンが見つかりません。
+      <main className="flex min-h-screen items-center justify-center font-mono text-cream-faint">
+        LOADING<span className="blink">▮</span>
+      </main>
+    );
+  }
+  if (state.status === "unavailable") {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center gap-4 font-mono">
+        <p>ドリルは最初のレッスンをクリアすると開放される。</p>
         <button
           type="button"
-          className="ml-3 underline"
+          className="btn-chunky border-b-[6px] border-shu-dark bg-shu px-8 py-3 font-black text-[#fff6ec]"
           onClick={() => navigate({ screen: "home" })}
         >
           ホームへ
         </button>
-      </div>
+      </main>
     );
   }
 
@@ -51,21 +80,17 @@ export function LessonScreen({
     void store.appendAttempt(info.attempt);
     const drill = applyDrillAttempt(profileRef.current, info.attempt);
     let next = drill.profile;
-    let xp = drill.xpGained;
     if (info.isLastExercise) {
-      const cleared = markLessonCleared(next, lesson.id, info.attempt.playedAt);
-      next = cleared.profile;
-      xp += cleared.xpGained;
       next = completeDrillSession(next, info.attempt.playedAt).profile;
     }
     if (next !== profileRef.current) setProfile(next);
-    setLastXp(xp);
+    setLastXp(drill.xpGained);
   };
 
   return (
     <PracticePlayer
-      exercises={lesson.exercises}
-      source="lesson"
+      exercises={state.exercises}
+      source="drill"
       headerLeft={
         <>
           <button
@@ -75,27 +100,14 @@ export function LessonScreen({
           >
             ← MAP
           </button>
-          <span className="border-2 border-ink px-2 text-[10px] tracking-widest text-cream-faint">
-            {stages[stageIndex]?.title} · {lesson.title.split(" — ")[0]}
+          <span className="border-2 border-ink px-2 text-[10px] tracking-widest text-shu">
+            DRILL · 5本勝負
           </span>
         </>
       }
-      sidePanel={
-        <div className="pixel-panel p-4">
-          <div className="mb-2 flex items-center gap-2 font-mono text-xs font-black tracking-[0.2em] text-matcha">
-            <SenseiSprite size={28} /> 師範のひとこと
-          </div>
-          <p className="text-sm text-cream-dim">{lesson.brief}</p>
-          {lesson.note && (
-            <p className="mt-2 border-l-2 border-ink-bold pl-2 text-xs text-cream-faint">
-              💡 {lesson.note}
-            </p>
-          )}
-        </div>
-      }
       onAttemptFinished={onAttemptFinished}
       renderResult={(info, controls) => (
-        <LessonResult
+        <DrillResult
           info={info}
           xpGained={lastXp}
           onRetry={controls.retry}
@@ -110,7 +122,7 @@ export function LessonScreen({
   );
 }
 
-function LessonResult({
+function DrillResult({
   info,
   xpGained,
   onRetry,
@@ -127,8 +139,8 @@ function LessonResult({
     <>
       <MedalHeadline attempt={info.attempt} />
       {info.isLastExercise && (
-        <div className="mt-3 flex items-center justify-center gap-2 font-mono text-sm font-black text-matcha">
-          <SenseiSprite mood="hype" size={40} /> レッスン皆伝!! よくやった!!
+        <div className="mt-3 font-mono text-sm font-black text-matcha">
+          5本勝負、完!! 🔥{profile.streak.current}日
         </div>
       )}
       <div className="mt-4 flex justify-center gap-3 font-mono text-sm font-extrabold">
@@ -140,11 +152,6 @@ function LessonResult({
         <span className="border-2 border-ink bg-black/40 px-3 py-1">
           Lv.{level} {intoLevel}/{neededForNext}
         </span>
-        {info.isLastExercise && (
-          <span className="border-2 border-ink bg-black/40 px-3 py-1 text-shu">
-            🔥 {profile.streak.current}日
-          </span>
-        )}
       </div>
       <div className="mt-6 flex gap-3">
         <button

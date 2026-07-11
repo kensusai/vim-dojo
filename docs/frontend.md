@@ -25,7 +25,7 @@ flowchart LR
 
 ## 共通コンポーネント
 
-- まだ抽出していない(画面が1枚のため)。**同じ見た目が3回出たら共有コンポーネントに抽出**(三度目の法則)。候補: pixel-panel カード、chunky ボタン、HUD チップ。
+- `PracticePlayer`(`src/ui/PracticePlayer.tsx`): 演習面の共有コンポーネント(エディタ+バトルストリップ+キーログ+結果モーダル枠)。レッスン/デイリー/ドリルの3画面目で三度目の法則により抽出。**注意**: 親から渡すコールバックは ref 経由で保持される(毎レンダー新しい関数でもセッションが再スタートしない)。
 - CSS 共通クラス(`.pixel-panel` `.btn-chunky` `.blink` `.ippon-pop`)は `index.css` の `@layer components` に定義済み。新規コンポーネントを作る前にここを確認。
 
 ## state 管理方針
