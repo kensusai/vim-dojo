@@ -152,7 +152,7 @@ export function DrillScreen() {
                   <span
                     className={`font-black ${isCurrent ? "text-shu" : "text-cream-dim"} ${result && result !== "abandoned" ? "line-through" : ""}`}
                   >
-                    {ex.practicedCommands[0]}
+                    {ex.practicedCommands.slice(0, 4).join(" ")}
                   </span>
                   {isCurrent && (
                     <span className="blink ml-auto text-[10px] text-gold">

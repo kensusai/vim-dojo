@@ -37,12 +37,13 @@ describe("every template's generated exercise is solvable at par", () => {
       try {
         for (let s = 0; s < SEEDS_PER_TEMPLATE; s++) {
           const rng = seededRandom(`${template.id}-${s}`);
-          const { exercise, solution } = template.generate(
+          const { exercise, solution, verifySolution } = template.generate(
             rng,
             `t-${template.id}-${s}`,
           );
           engine.reset(exercise.initialBuffer);
-          for (const key of replayable(solution)) engine.sendKey(key);
+          for (const key of verifySolution ?? replayable(solution))
+            engine.sendKey(key);
           expect(
             engine.currentBuffer(),
             `${template.id} seed ${s}: solution did not reach the target\ninitial: ${JSON.stringify(exercise.initialBuffer)}\nsolution: ${solution.join(" ")}`,

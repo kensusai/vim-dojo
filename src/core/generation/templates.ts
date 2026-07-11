@@ -14,6 +14,12 @@ export interface GeneratedExercise {
   exercise: Exercise;
   /** Author-solution keystrokes (see stageContent.test.ts token format). */
   solution: string[];
+  /**
+   * Optional layout-independent replay for headless verification, when the
+   * play solution uses j/k (jsdom cannot drive display-line motions). Must
+   * reach the same target buffer; par still asserts against `solution`.
+   */
+  verifySolution?: string[];
 }
 
 export interface ExerciseTemplate {
@@ -175,9 +181,81 @@ const fJump: ExerciseTemplate = {
   },
 };
 
+/**
+ * Treasure maze: a grid of floor tiles and decorative walls with coins (*)
+ * to collect — navigate with hjkl and press x on each coin (playtest
+ * feedback: 文章修正以外のドリルが欲しい). Walls don't block motion (vim
+ * doesn't work that way); the par is the straight hjkl tour, so cutting
+ * across them is exactly the intended play.
+ */
+const treasureMaze: ExerciseTemplate = {
+  id: "treasure-maze",
+  requires: cmd("h", "j", "k", "l", "x"),
+  practices: cmd("h", "j", "k", "l"),
+  generate(rng, id) {
+    const rows = 5;
+    const cols = 18 + nextInt(rng, 5);
+    // scatter decorative walls (~22%), keep the start tile clear
+    const grid: string[][] = Array.from({ length: rows }, (_, r) =>
+      Array.from({ length: cols }, (_, c) =>
+        r === 0 && c === 0 ? "." : rng.next() < 0.22 ? "#" : ".",
+      ),
+    );
+    // One coin per row (x removes its cell and shortens that row — a second
+    // coin on the same row would shift coordinates mid-run), never in the
+    // last column (deleting the line-end would pull the cursor column back).
+    const coinRows = [0, 1, 2, 3, 4].filter(() => rng.next() < 0.8).slice(0, 3);
+    while (coinRows.length < 3) {
+      const r = nextInt(rng, rows);
+      if (!coinRows.includes(r)) coinRows.push(r);
+    }
+    const coins: [number, number][] = coinRows.map((r) => {
+      let c = nextInt(rng, cols - 1);
+      if (r === 0 && c === 0) c = 1;
+      grid[r]![c] = "*";
+      return [r, c];
+    });
+    const initial = grid.map((row) => row.join("")).join("\n");
+    const target = grid
+      .map((row) => row.filter((cell) => cell !== "*").join(""))
+      .join("\n");
+    // hjkl tour top-to-bottom; par = its length. After x the cursor keeps its
+    // column index, and other rows are untouched, so plain Manhattan counts.
+    coins.sort(([ar], [br]) => ar - br);
+    const solution: string[] = [];
+    const verifySolution: string[] = [];
+    let cr = 0;
+    let cc = 0;
+    for (const [r, c] of coins) {
+      solution.push(
+        ...Array<string>(Math.abs(r - cr)).fill(r > cr ? "j" : "k"),
+        ...Array<string>(Math.abs(c - cc)).fill(c > cc ? "l" : "h"),
+        "x",
+      );
+      verifySolution.push(...String(r + 1), "G", ...String(c + 1), "|", "x");
+      cr = r;
+      cc = c;
+    }
+    return {
+      exercise: {
+        id: exerciseId(id),
+        title: "迷路の宝を全部あつめろ",
+        hint: "h j k l で * まで歩き、踏んだら x で回収。壁(#)は飾りだ — 最短距離で行け。",
+        initialBuffer: initial,
+        targetBuffer: target,
+        par: solution.length,
+        practicedCommands: this.practices,
+      },
+      solution,
+      verifySolution,
+    };
+  },
+};
+
 export const templates: ExerciseTemplate[] = [
   extraChar,
   duplicateLine,
   trailingChar,
   fJump,
+  treasureMaze,
 ];
