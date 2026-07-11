@@ -15,6 +15,7 @@ import { unlockedCommands } from "../core/curriculum/curriculum";
 import { stages } from "../core/curriculum/stages";
 import { initialProfile } from "../core/profile";
 import { createVimEngine } from "./codeMirrorVimEngine";
+import { replaySolution } from "./replaySolution";
 
 beforeAll(installCodeMirrorDomStubs);
 
@@ -111,25 +112,6 @@ const solutions: Record<string, string[]> = {
  * Verified in the browser instead (e2e/drive-m6.mjs). */
 const browserOnly = new Set(["s1-l3-e1", "s1-l3-e2", "s1-l3-e3"]);
 
-/**
- * Replay a solution. Tokens are single keystrokes. While the engine reports
- * insert mode, literal characters are typed (engine.typeText) because insert
- * text goes through typing, not Vim.handleKey. Judging by the actual mode
- * (not by which key was pressed) keeps operator+text-object sequences like
- * "c i w" correct — the "i" there is a text object, not insert-enter.
- */
-function play(engine: ReturnType<typeof createVimEngine>, solution: string[]) {
-  for (const key of solution) {
-    if (key === "<Esc>") {
-      engine.sendKey("<Esc>");
-    } else if (engine.currentMode() === "insert") {
-      engine.typeText(key);
-    } else {
-      engine.sendKey(key);
-    }
-  }
-}
-
 describe("authored content is solvable with correct pars", () => {
   for (const lesson of stages.flatMap((s) => s.lessons)) {
     for (const exercise of lesson.exercises) {
@@ -143,7 +125,7 @@ describe("authored content is solvable with correct pars", () => {
             solution,
             `no recorded solution for ${exercise.id}`,
           ).toBeDefined();
-          play(engine, solution!);
+          replaySolution(engine, solution!);
           expect(engine.currentBuffer()).toBe(exercise.targetBuffer);
           // Par is the author's best: the recorded solution must match it.
           expect(solution!.length).toBe(exercise.par);

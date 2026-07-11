@@ -252,10 +252,181 @@ const treasureMaze: ExerciseTemplate = {
   },
 };
 
+/** 蛇の道: hop word to word with w and delete the marked word's brand (X). */
+const snakePath: ExerciseTemplate = {
+  id: "snake-path",
+  requires: cmd("w", "x"),
+  practices: cmd("w"),
+  generate(rng, id) {
+    const rows = 3;
+    const perRow = 4;
+    const words = Array.from({ length: rows * perRow }, () => pick(rng, WORDS));
+    // one branded word per row; w counts words, so deletions never shift hops
+    const marks = Array.from(
+      { length: rows },
+      (_, r) => r * perRow + nextInt(rng, perRow),
+    );
+    const branded = words.map((w, i) => (marks.includes(i) ? "X" + w : w));
+    const initial = Array.from({ length: rows }, (_, r) =>
+      branded.slice(r * perRow, (r + 1) * perRow).join(" "),
+    ).join("\n");
+    const target = Array.from({ length: rows }, (_, r) =>
+      words.slice(r * perRow, (r + 1) * perRow).join(" "),
+    ).join("\n");
+    const solution: string[] = [];
+    let cursor = 0;
+    for (const mark of marks) {
+      solution.push(...Array<string>(mark - cursor).fill("w"), "x");
+      cursor = mark;
+    }
+    return {
+      exercise: {
+        id: exerciseId(id),
+        title: "蛇の道 — 単語を渡って X を消せ",
+        hint: "w で単語から単語へ跳ぶ(行末でも次の行へ続く)。X の付いた単語で x。",
+        initialBuffer: initial,
+        targetBuffer: target,
+        par: solution.length,
+        practicedCommands: this.practices,
+      },
+      solution,
+    };
+  },
+};
+
+/** 狙撃: pick off scattered @ targets with f-jumps. */
+const snipe: ExerciseTemplate = {
+  id: "snipe",
+  requires: cmd("f", "x"),
+  practices: cmd("f"),
+  generate(rng, id) {
+    const words = Array.from({ length: 7 }, () => pick(rng, WORDS));
+    // brand 3 distinct words (never the first — the cursor starts there and
+    // f only looks ahead) by appending the target glyph
+    const targets = new Set<number>();
+    while (targets.size < 3) targets.add(1 + nextInt(rng, words.length - 1));
+    const initial = words
+      .map((w, i) => (targets.has(i) ? w + "@" : w))
+      .join(" ");
+    const target = words.join(" ");
+    const solution = Array.from({ length: 3 }, () => ["f", "@", "x"]).flat();
+    return {
+      exercise: {
+        id: exerciseId(id),
+        title: "狙撃 — 的(@)を撃ち抜け",
+        hint: "f@ で次の的へ一撃ジャンプ、x で撃つ。3連射だ。",
+        initialBuffer: initial,
+        targetBuffer: target,
+        par: solution.length,
+        practicedCommands: this.practices,
+      },
+      solution,
+    };
+  },
+};
+
+/** 積み木: one line is out of order — dd it and p it back into place. */
+const lineStack: ExerciseTemplate = {
+  id: "line-stack",
+  requires: cmd("dd", "p", "G"),
+  practices: cmd("dd", "p"),
+  generate(rng, id) {
+    const lines = Array.from(
+      { length: 5 },
+      (_, i) => `${i + 1}. ${pick(rng, WORDS)} ${pick(rng, WORDS)}`,
+    );
+    // pull one line (never the first — pasting back above the top needs P,
+    // which is not in the curriculum yet) and drop it somewhere else
+    const from = 1 + nextInt(rng, lines.length - 1);
+    // never displace to the last row: this emulator's dd on the final line
+    // leaves an empty-line artifact (docs/vim-coverage.md)
+    const spots = [0, 1, 2, 3].filter((i) => i !== from);
+    const to = spots[nextInt(rng, spots.length)]!;
+    const moved = lines[from]!;
+    const rest = lines.filter((_, i) => i !== from);
+    rest.splice(to, 0, moved);
+    // `rest` is now the shuffled board; put it back in numeric order
+    const initial = rest.join("\n");
+    const target = lines.join("\n");
+    const displacedRow = rest.indexOf(moved) + 1; // 1-based
+    const predecessorRow = from; // after dd the correct predecessor sits here
+    const solution = [
+      ...String(displacedRow),
+      "G",
+      "d",
+      "d",
+      ...String(predecessorRow),
+      "G",
+      "p",
+    ];
+    return {
+      exercise: {
+        id: exerciseId(id),
+        title: "積み木 — 番号順に積み直せ",
+        hint: "はみ出した行を dd で抜いて、{行番号}G で移動し p で差し込む。",
+        initialBuffer: initial,
+        targetBuffer: target,
+        par: solution.length,
+        practicedCommands: this.practices,
+      },
+      solution,
+    };
+  },
+};
+
+/** 写経: make the line match the model by rewriting the odd words with ciw. */
+const transcribe: ExerciseTemplate = {
+  id: "transcribe",
+  requires: cmd("ciw", "w"),
+  practices: cmd("ciw"),
+  generate(rng, id) {
+    const correct = Array.from({ length: 4 }, () => pick(rng, WORDS));
+    const diffs = new Set<number>();
+    while (diffs.size < 2) diffs.add(nextInt(rng, correct.length));
+    const mutated = correct.map((w, i) => {
+      if (!diffs.has(i)) return w;
+      let other = pick(rng, WORDS);
+      while (other === w) other = pick(rng, WORDS);
+      return other;
+    });
+    const initial = mutated.join(" ");
+    const target = correct.join(" ");
+    const solution: string[] = [];
+    let cursor = 0;
+    for (const i of [...diffs].sort((a, b) => a - b)) {
+      solution.push(
+        ...Array<string>(i - cursor).fill("w"),
+        "c",
+        "i",
+        "w",
+        ...correct[i]!,
+        "<Esc>",
+      );
+      cursor = i;
+    }
+    return {
+      exercise: {
+        id: exerciseId(id),
+        title: "写経 — 手本と一致させよ",
+        hint: "違う単語まで w で跳び、ciw で書き換えて Esc。TARGET が手本だ。",
+        initialBuffer: initial,
+        targetBuffer: target,
+        par: solution.length,
+        practicedCommands: this.practices,
+      },
+      solution,
+    };
+  },
+};
+
 export const templates: ExerciseTemplate[] = [
   extraChar,
   duplicateLine,
   trailingChar,
   fJump,
   treasureMaze,
+  snakePath,
+  snipe,
+  lineStack,
+  transcribe,
 ];

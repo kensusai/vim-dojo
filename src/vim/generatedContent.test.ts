@@ -12,6 +12,7 @@ import { installCodeMirrorDomStubs } from "./cmDomStubs";
 import { seededRandom } from "../core/generation/rng";
 import { templates } from "../core/generation/templates";
 import { createVimEngine } from "./codeMirrorVimEngine";
+import { replaySolution } from "./replaySolution";
 
 beforeAll(installCodeMirrorDomStubs);
 
@@ -42,8 +43,7 @@ describe("every template's generated exercise is solvable at par", () => {
             `t-${template.id}-${s}`,
           );
           engine.reset(exercise.initialBuffer);
-          for (const key of verifySolution ?? replayable(solution))
-            engine.sendKey(key);
+          replaySolution(engine, replayable(verifySolution ?? solution));
           expect(
             engine.currentBuffer(),
             `${template.id} seed ${s}: solution did not reach the target\ninitial: ${JSON.stringify(exercise.initialBuffer)}\nsolution: ${solution.join(" ")}`,
