@@ -60,8 +60,9 @@ export function PracticePlayer({
   source: ExerciseSource;
   /** Extra content in the header's left side (back button, titles). */
   headerLeft?: ReactNode;
-  /** Extra side panel above TARGET (e.g. the lesson brief). */
-  sidePanel?: ReactNode;
+  /** Extra side panel above TARGET (e.g. the lesson brief). A function form
+   * receives the current exercise, e.g. to show per-exercise hints. */
+  sidePanel?: ReactNode | ((exercise: Exercise) => ReactNode);
   /** Called once per finished attempt (cleared or abandoned via retry). */
   onAttemptFinished: (info: FinishedInfo) => void;
   /**
@@ -287,7 +288,9 @@ export function PracticePlayer({
         </section>
 
         <aside className="flex flex-col gap-5">
-          {sidePanel ?? <SenseiHintPanel hint={exercise.hint} />}
+          {(typeof sidePanel === "function"
+            ? sidePanel(exercise)
+            : sidePanel) ?? <SenseiHintPanel hint={exercise.hint} />}
 
           <div className="pixel-panel p-4">
             <div className="mb-2 font-mono text-xs font-black tracking-[0.2em] text-cream-dim">

@@ -17,6 +17,7 @@ const ex = (
   targetBuffer: string,
   par: number,
   commands: string[],
+  hint?: string,
 ): Exercise => ({
   id: exerciseId(id),
   title,
@@ -24,6 +25,7 @@ const ex = (
   targetBuffer,
   par,
   practicedCommands: commands.map(commandId),
+  ...(hint !== undefined ? { hint } : {}),
 });
 
 const stage1Lessons: Lesson[] = [
@@ -401,12 +403,28 @@ const stage2Lessons: Lesson[] = [
     id: lessonId("s2-l9-dot"),
     title: ". — 直前の変更をリピート",
     brief:
-      ". は最後の変更コマンドをもう一度実行する。同じ編集の繰り返しが一打に。vim 最強のキーのひとつ。",
+      "直前の「変更」をまるごと再実行するのが . だ。例: dw で1単語消したあと . を押すと、もう1単語消える(dw がもう一度走る)。移動(w や j)は変更ではないので繰り返されない。",
     note: "名著 Practical Vim は「1回の編集を . で繰り返せる形に組め」をドット公式と呼ぶ。上級者ほど多用する。",
     unlocks: [commandId(".")],
     exercises: [
-      ex("s2-l9-e1", "前の2単語を消せ", "aa bb cc dd", "cc dd", 3, ["dw", "."]),
-      ex("s2-l9-e2", "3単語まとめて", "x1 x2 x3 keep", "keep", 4, ["dw", "."]),
+      ex(
+        "s2-l9-e1",
+        "前の2単語を消せ",
+        "aa bb cc dd",
+        "cc dd",
+        3,
+        ["dw", "."],
+        "dw で aa が消える。続けて . を押すと dw がもう一度走って bb も消える。合計3キー。",
+      ),
+      ex(
+        "s2-l9-e2",
+        "3単語まとめて消せ",
+        "x1 x2 x3 keep",
+        "keep",
+        4,
+        ["dw", "."],
+        "dw のあと . . と2連打。同じ変更を何度でも重ねられるのが . の強さだ。",
+      ),
     ],
   },
   {
