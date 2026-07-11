@@ -321,7 +321,7 @@ export function HomeScreen() {
             <span className="text-xs font-normal text-cream-faint">
               — レッスンをクリアして道を進め
             </span>
-            <span className="ml-auto flex items-center gap-3 text-[11px] font-normal text-cream-faint">
+            <span className="ml-auto flex items-center gap-3 text-xs font-normal text-cream-dim">
               <span>
                 <span className="font-black text-matcha">✓</span> クリア済み
               </span>
@@ -352,7 +352,7 @@ export function HomeScreen() {
                     } bg-raised`}
                   >
                     {stage.title}
-                    <span className="block text-[10px] font-normal text-cream-faint">
+                    <span className="block text-xs font-normal text-cream-dim">
                       {stage.subtitle}
                     </span>
                   </div>
@@ -519,8 +519,12 @@ function LessonNode({
           {status === "cleared" ? "✓" : status === "current" ? "▶" : "?"}
         </button>
         <span
-          className={`max-w-14 truncate font-mono text-[10px] ${
-            status === "current" ? "font-black text-gold" : "text-cream-faint"
+          className={`max-w-24 truncate font-mono text-sm font-bold ${
+            status === "current"
+              ? "font-black text-gold"
+              : status === "cleared"
+                ? "text-matcha"
+                : "text-cream-dim"
           }`}
         >
           {label}
