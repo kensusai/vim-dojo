@@ -17,6 +17,7 @@ import {
   StreakChip,
   type FinishedInfo,
 } from "./PracticePlayer";
+import { BossPanel } from "./Boss";
 import { SenseiSprite } from "./Sensei";
 import { playLessonComplete } from "./sound";
 import { useAppStore } from "./storeContext";
@@ -86,28 +87,40 @@ export function LessonScreen({
           </span>
         </>
       }
-      sidePanel={(exercise) => (
-        <div className="pixel-panel p-4">
-          <div className="mb-2 flex items-center gap-2 font-mono text-xs font-black tracking-[0.2em] text-matcha">
-            <SenseiSprite size={28} /> 師範のひとこと
+      sidePanel={({ exercise, keystrokes }) =>
+        lesson.boss ? (
+          <>
+            <BossPanel exercise={exercise} keystrokes={keystrokes} />
+            {exercise.hint && (
+              <div className="pixel-panel p-4">
+                <p className="text-sm text-cream-dim">🎯 {exercise.hint}</p>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="pixel-panel p-4">
+            <div className="mb-2 flex items-center gap-2 font-mono text-xs font-black tracking-[0.2em] text-matcha">
+              <SenseiSprite size={28} /> 師範のひとこと
+            </div>
+            <p className="text-sm text-cream-dim">{lesson.brief}</p>
+            {exercise.hint && (
+              <p className="mt-2 border-l-2 border-matcha-dim pl-2 text-sm text-cream">
+                🎯 {exercise.hint}
+              </p>
+            )}
+            {lesson.note && (
+              <p className="mt-2 border-l-2 border-ink-bold pl-2 text-xs text-cream-faint">
+                💡 {lesson.note}
+              </p>
+            )}
           </div>
-          <p className="text-sm text-cream-dim">{lesson.brief}</p>
-          {exercise.hint && (
-            <p className="mt-2 border-l-2 border-matcha-dim pl-2 text-sm text-cream">
-              🎯 {exercise.hint}
-            </p>
-          )}
-          {lesson.note && (
-            <p className="mt-2 border-l-2 border-ink-bold pl-2 text-xs text-cream-faint">
-              💡 {lesson.note}
-            </p>
-          )}
-        </div>
-      )}
+        )
+      }
       onAttemptFinished={onAttemptFinished}
       renderResult={(info, controls) => (
         <LessonResult
           info={info}
+          boss={lesson.boss ?? false}
           xpGained={lastXp}
           onRetry={controls.retry}
           onNext={
@@ -123,11 +136,13 @@ export function LessonScreen({
 
 function LessonResult({
   info,
+  boss,
   xpGained,
   onRetry,
   onNext,
 }: {
   info: FinishedInfo;
+  boss: boolean;
   xpGained: number;
   onRetry: () => void;
   onNext: () => void;
@@ -137,7 +152,8 @@ function LessonResult({
       <MedalHeadline attempt={info.attempt} />
       {info.isLastExercise && (
         <div className="mt-3 flex items-center justify-center gap-2 font-mono text-sm font-black text-matcha">
-          <SenseiSprite mood="hype" size={40} /> レッスン皆伝!! よくやった!!
+          <SenseiSprite mood="hype" size={40} />
+          {boss ? "ボス撃破!! 皆伝だ!!" : "レッスン皆伝!! よくやった!!"}
         </div>
       )}
       <ResultFooter

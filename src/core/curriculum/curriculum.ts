@@ -17,6 +17,8 @@ export interface Lesson {
   unlocks: CommandId[];
   /** Optional aside about modern editors, e.g. LazyVim (domain.md P9). */
   note?: string;
+  /** ステージ最後の皆伝試験: the UI stages a boss fight for these. */
+  boss?: boolean;
   exercises: Exercise[];
 }
 

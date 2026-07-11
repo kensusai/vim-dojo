@@ -366,6 +366,7 @@ export function HomeScreen() {
                         <LessonNode
                           key={lesson.id}
                           label={nodeLabel(lesson.title)}
+                          isBoss={lesson.boss ?? false}
                           status={statuses[lessonIndex] ?? "locked"}
                           isLast={lessonIndex === stage.lessons.length - 1}
                           onClick={() =>
@@ -489,11 +490,13 @@ export function HomeScreen() {
 function LessonNode({
   label,
   status,
+  isBoss,
   isLast,
   onClick,
 }: {
   label: string;
   status: LessonStatus;
+  isBoss: boolean;
   isLast: boolean;
   onClick: () => void;
 }) {
@@ -516,7 +519,13 @@ function LessonNode({
           aria-label={`${label} (${status})`}
           className={`${base} ${style} ${status === "locked" ? "cursor-not-allowed" : "cursor-pointer"}`}
         >
-          {status === "cleared" ? "✓" : status === "current" ? "▶" : "?"}
+          {status === "cleared"
+            ? "✓"
+            : isBoss
+              ? "👹"
+              : status === "current"
+                ? "▶"
+                : "?"}
         </button>
         <span
           className={`max-w-24 truncate font-mono text-sm font-bold ${

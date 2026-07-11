@@ -432,6 +432,7 @@ const stage2Lessons: Lesson[] = [
   {
     id: lessonId("s2-l10-boss"),
     title: "総仕上げ — 編集の型 皆伝試験",
+    boss: true,
     brief:
       '習った型の組み合わせだ。動詞(d/c/y)+対象(w/iw/i"/i()を意識して、最短の一手を選べ。',
     unlocks: [],
