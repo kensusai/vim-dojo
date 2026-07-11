@@ -31,23 +31,38 @@ export interface ExerciseTemplate {
   generate(rng: RandomSource, id: string): GeneratedExercise;
 }
 
+// Drill material reads like real code, not word salad (playtest feedback:
+// 実務で使う形の題材のほうが実践的). Identifiers are punctuation-free so
+// w-hop counting in templates stays exact; code lines are for line-wise
+// templates only (duplicate/trailing/stack), where punctuation is safe.
 const WORDS = [
-  "vim",
-  "dojo",
-  "editor",
+  "userId",
+  "fetchData",
+  "count",
+  "index",
+  "result",
+  "isReady",
+  "maxRetries",
+  "onSave",
   "buffer",
   "cursor",
-  "motion",
-  "window",
-  "keyboard",
-  "normal",
-  "insert",
-  "visual",
-  "line",
-  "word",
-  "delete",
+  "payload",
+  "response",
+  "config",
+  "handler",
+];
+const CODE_LINES = [
+  "const count = items.length;",
+  "if (isReady) start();",
+  "return response.data;",
+  "await saveUser(payload);",
+  "let retries = 0;",
+  "console.log(result);",
+  "export default handler;",
+  "user.name = trimmed;",
 ];
 const JUNK_CHARS = ["X", "Z", "Q", "#", "@"];
+const codeLine = (rng: RandomSource) => pick(rng, CODE_LINES);
 
 const cmd = (...names: string[]) => names.map(commandId);
 
@@ -95,9 +110,8 @@ const duplicateLine: ExerciseTemplate = {
   requires: cmd("j", "dd"),
   practices: cmd("j", "dd"),
   generate(rng, id) {
-    const lines = Array.from(
-      { length: 3 + nextInt(rng, 2) },
-      () => `${pick(rng, WORDS)} ${pick(rng, WORDS)}`,
+    const lines = Array.from({ length: 3 + nextInt(rng, 2) }, () =>
+      codeLine(rng),
     );
     const dupIndex = nextInt(rng, lines.length);
     const initial = [
@@ -128,9 +142,8 @@ const trailingChar: ExerciseTemplate = {
   requires: cmd("j", "$", "x"),
   practices: cmd("j", "$", "x"),
   generate(rng, id) {
-    const lines = Array.from(
-      { length: 2 + nextInt(rng, 3) },
-      () => `${pick(rng, WORDS)} ${pick(rng, WORDS)}`,
+    const lines = Array.from({ length: 2 + nextInt(rng, 3) }, () =>
+      codeLine(rng),
     );
     const lineIndex = nextInt(rng, lines.length);
     const target = lines.join("\n");
@@ -333,7 +346,7 @@ const lineStack: ExerciseTemplate = {
   generate(rng, id) {
     const lines = Array.from(
       { length: 5 },
-      (_, i) => `${i + 1}. ${pick(rng, WORDS)} ${pick(rng, WORDS)}`,
+      (_, i) => `${i + 1}: ${codeLine(rng)}`,
     );
     // pull one line (never the first — pasting back above the top needs P,
     // which is not in the curriculum yet) and drop it somewhere else
