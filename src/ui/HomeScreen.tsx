@@ -191,27 +191,61 @@ export function HomeScreen() {
                   </span>
                 </div>
                 <div className="flex items-center gap-4">
-                  <button
-                    type="button"
-                    onClick={() => navigate({ screen: "daily" })}
-                    className="btn-chunky inline-flex items-center gap-3 border-b-8 border-shu-dark bg-shu px-11 py-4 text-xl font-black tracking-widest text-[#fff6ec]"
-                  >
-                    {daily.xpGranted ? "ベスト更新を狙う" : "挑戦する"}
-                  </button>
-                  {next && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        navigate({
-                          screen: "lesson",
-                          stageIndex: next.stageIndex,
-                          lessonIndex: next.lessonIndex,
-                        })
-                      }
-                      className="btn-chunky border-2 border-b-[6px] border-ink-bold bg-raised px-6 py-3 font-mono text-sm font-extrabold text-cream-dim"
-                    >
-                      レッスンへ: {next.lesson.title.split(" — ")[0]}
-                    </button>
+                  {daily.xpGranted && next ? (
+                    <>
+                      {/* 今日のノルマは済み → 主役は次のレッスン(playtest feedback) */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          navigate({
+                            screen: "lesson",
+                            stageIndex: next.stageIndex,
+                            lessonIndex: next.lessonIndex,
+                          })
+                        }
+                        className="btn-chunky inline-flex items-center gap-3 border-b-8 border-shu-dark bg-shu px-11 py-4 text-xl font-black tracking-widest text-[#fff6ec]"
+                      >
+                        次のレッスン: {next.lesson.title.split(" — ")[0]}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => navigate({ screen: "daily" })}
+                        className="btn-chunky border-2 border-b-[6px] border-ink-bold bg-raised px-6 py-3 text-left font-mono text-xs font-extrabold text-cream-dim"
+                      >
+                        今日のお題にもう一度
+                        <span className="block text-[10px] font-normal text-cream-faint">
+                          自己ベスト{" "}
+                          {profile.exerciseBests[daily.exercise.id]
+                            ?.keystrokes ?? "—"}{" "}
+                          キーをもっと少なく = ベスト更新
+                        </span>
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => navigate({ screen: "daily" })}
+                        className="btn-chunky inline-flex items-center gap-3 border-b-8 border-shu-dark bg-shu px-11 py-4 text-xl font-black tracking-widest text-[#fff6ec]"
+                      >
+                        {daily.xpGranted ? "もう一度挑む" : "挑戦する"}
+                      </button>
+                      {next && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            navigate({
+                              screen: "lesson",
+                              stageIndex: next.stageIndex,
+                              lessonIndex: next.lessonIndex,
+                            })
+                          }
+                          className="btn-chunky border-2 border-b-[6px] border-ink-bold bg-raised px-6 py-3 font-mono text-sm font-extrabold text-cream-dim"
+                        >
+                          レッスンへ: {next.lesson.title.split(" — ")[0]}
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </>

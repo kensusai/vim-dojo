@@ -157,12 +157,30 @@ export function PracticePlayer({
   const silverLine = Math.ceil(exercise.par * 1.5);
   const gaugePercent = Math.min(100, (keystrokes / silverLine) * 100);
   const parMarker = (exercise.par / silverLine) * 100;
-  const medalHint =
+  // Which medal is still reachable — the gauge/counter change color the
+  // moment a line is crossed (playtest feedback: crossing felt like nothing).
+  const zone =
     keystrokes <= exercise.par
-      ? `🥇 まであと ${exercise.par - keystrokes}`
+      ? "gold"
       : keystrokes <= silverLine
+        ? "silver"
+        : "bronze";
+  const zoneColor = {
+    gold: "bg-matcha",
+    silver: "bg-silver",
+    bronze: "bg-bronze",
+  }[zone];
+  const zoneText = {
+    gold: "text-matcha",
+    silver: "text-silver",
+    bronze: "text-bronze",
+  }[zone];
+  const medalHint =
+    zone === "gold"
+      ? `🥇 まであと ${exercise.par - keystrokes}`
+      : zone === "silver"
         ? `🥈 まであと ${silverLine - keystrokes}`
-        : "🥉 有効圏内";
+        : "🥉 有効 — 何キーでもクリアはできる";
 
   return (
     <div className="mx-auto flex min-h-screen max-w-[1440px] flex-col">
@@ -205,23 +223,34 @@ export function PracticePlayer({
             initial={{ scale: keystrokes > 0 ? 1.35 : 1 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", stiffness: 700, damping: 22 }}
-            className="inline-block text-3xl font-black text-matcha [text-shadow:3px_3px_0_rgb(0_0_0/0.5)]"
+            className={`inline-block text-3xl font-black ${zoneText} [text-shadow:3px_3px_0_rgb(0_0_0/0.5)]`}
           >
             {keystrokes}
           </motion.span>
         </div>
         <div className="flex items-center gap-3">
-          <div className="relative h-[18px] w-[280px] border-3 border-ink-bold bg-black">
+          {/* re-mount on zone change → a visible pulse the moment a line is crossed */}
+          <motion.div
+            key={zone}
+            initial={{ scale: zone === "gold" ? 1 : 1.08 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 500, damping: 18 }}
+            className="relative h-[18px] w-[280px] border-3 border-ink-bold bg-black"
+          >
             <div
-              className="absolute inset-y-0 left-0 bg-matcha transition-[width] duration-150"
+              className={`absolute inset-y-0 left-0 ${zoneColor} transition-[width] duration-150`}
               style={{ width: `${gaugePercent}%` }}
             />
             <div
               className="absolute -top-1.5 h-6 w-[3px] bg-cream-dim"
               style={{ left: `${parMarker}%` }}
             />
-          </div>
-          <span className="text-xs font-extrabold text-gold">{medalHint}</span>
+          </motion.div>
+          <span
+            className={`text-xs font-extrabold ${zone === "gold" ? "text-gold" : zoneText}`}
+          >
+            {medalHint}
+          </span>
         </div>
         <div className="text-sm text-cream-dim">PAR {exercise.par}</div>
       </div>

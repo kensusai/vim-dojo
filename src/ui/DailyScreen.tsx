@@ -134,6 +134,11 @@ function DailyResult({
       <div className="mt-3 font-mono text-sm font-black text-matcha">
         今日の修行、納め!! 🔥{profile.streak.current}日
       </div>
+      <p className="mt-2 text-xs text-cream-faint">
+        自己ベスト:{" "}
+        {profile.exerciseBests[info.attempt.exerciseId]?.keystrokes ?? "—"}{" "}
+        キー。同じお題をより少ないキーでクリアすると「ベスト更新」だ。
+      </p>
       <ResultFooter
         xpGained={xpGained}
         primaryLabel="ホームへ ▶"
