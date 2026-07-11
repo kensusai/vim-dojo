@@ -25,6 +25,11 @@ export interface VimEngine {
    * switches count too). Returns an unsubscribe function.
    */
   onKeystroke(listener: (key: string) => void): () => void;
+  /**
+   * Subscribe to buffer changes, for the clear judgment "the moment the
+   * buffer matches the target" (R1). Returns an unsubscribe function.
+   */
+  onBufferChange(listener: (buffer: string) => void): () => void;
 }
 
 // ProgressStore (persistence for Progress, docs/database.md) is defined here

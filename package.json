@@ -16,6 +16,8 @@
     "check": "npm run lint && npm run format:check && npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
+    "@replit/codemirror-vim": "^6.3.0",
+    "codemirror": "^6.0.2",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },
@@ -26,6 +28,7 @@
     "@vitejs/plugin-react": "^6.0.3",
     "eslint": "^10.7.0",
     "eslint-config-prettier": "^10.1.8",
+    "jsdom": "^29.1.1",
     "prettier": "^3.9.5",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.63.0",
