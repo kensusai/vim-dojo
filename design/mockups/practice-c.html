@@ -1,0 +1,719 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>vim-dojo — 演習(案C: 振り切りレトロゲーム)</title>
+    <style>
+      /* == デザイントークン(案Cと共通 — 確定版はこれを正とする) ========== */
+      :root {
+        --bg-base: #12100b;
+        --bg-surface: #1d1912;
+        --bg-raised: #2b2517;
+        --bg-editor: #0e0c08;
+        --border-ink: #4a3f26;
+        --border-bold: #6b5c36;
+        --text-primary: #f5efdd;
+        --text-secondary: #b3a988;
+        --text-faint: #746a4e;
+        --matcha: #9ee34f;
+        --matcha-dim: #3f5f1f;
+        --shu: #ff5a3c;
+        --shu-dark: #a83318;
+        --gold: #ffd25e;
+        --freeze: #7cc7ff;
+        --paper: #f3e9cd;
+        --paper-ink: #2b241a;
+        --diff-del: rgba(255, 90, 60, 0.18);
+        --diff-add: rgba(158, 227, 79, 0.16);
+        --font-ui:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans",
+          "Noto Sans JP", sans-serif;
+        --font-mono:
+          ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+        --fs-xs: 12px;
+        --fs-sm: 13px;
+        --fs-md: 15px;
+        --fs-lg: 18px;
+        --fs-xl: 26px;
+        --fs-hero: 38px;
+        --sp-1: 4px;
+        --sp-2: 8px;
+        --sp-3: 12px;
+        --sp-4: 16px;
+        --sp-5: 24px;
+        --sp-6: 32px;
+        --sp-7: 48px;
+        --drop: 6px 6px 0 rgba(0, 0, 0, 0.6);
+        --drop-sm: 3px 3px 0 rgba(0, 0, 0, 0.6);
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        background:
+          repeating-linear-gradient(
+            0deg,
+            transparent 0 2px,
+            rgba(0, 0, 0, 0.18) 2px 3px
+          ),
+          radial-gradient(1200px 600px at 50% -10%, #1c1810, var(--bg-base) 70%);
+        color: var(--text-primary);
+        font-family: var(--font-ui);
+        font-size: var(--fs-md);
+        line-height: 1.6;
+      }
+      .frame {
+        width: 1440px;
+        margin: 0 auto;
+      }
+      .pixel-panel {
+        background: var(--bg-surface);
+        border: 3px solid var(--border-ink);
+        box-shadow:
+          var(--drop),
+          inset 0 0 0 2px rgba(0, 0, 0, 0.35);
+        clip-path: polygon(
+          0 8px,
+          8px 8px,
+          8px 0,
+          calc(100% - 8px) 0,
+          calc(100% - 8px) 8px,
+          100% 8px,
+          100% calc(100% - 8px),
+          calc(100% - 8px) calc(100% - 8px),
+          calc(100% - 8px) 100%,
+          8px 100%,
+          8px calc(100% - 8px),
+          0 calc(100% - 8px)
+        );
+      }
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+
+      /* == HUD ============================================================ */
+      .hud {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--sp-3) var(--sp-7);
+        border-bottom: 3px solid var(--border-ink);
+        background: rgba(0, 0, 0, 0.25);
+        font-family: var(--font-mono);
+      }
+      .hud-left {
+        display: flex;
+        align-items: center;
+        gap: var(--sp-4);
+      }
+      .btn-flee-small {
+        color: var(--text-faint);
+        font-size: var(--fs-sm);
+        text-decoration: none;
+      }
+      .quest-name {
+        font-size: var(--fs-lg);
+        font-weight: 900;
+        font-family: var(--font-ui);
+      }
+      .quest-src {
+        font-size: 10px;
+        color: var(--text-faint);
+        border: 2px solid var(--border-ink);
+        padding: 2px 10px;
+        letter-spacing: 0.1em;
+      }
+      .round-blocks {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .round-blocks .label {
+        font-size: 10px;
+        color: var(--text-faint);
+        letter-spacing: 0.15em;
+        margin-right: var(--sp-2);
+      }
+      .rblock {
+        width: 16px;
+        height: 16px;
+        border: 2px solid var(--border-bold);
+        background: var(--bg-raised);
+      }
+      .rblock.won {
+        background: var(--matcha);
+        border-color: var(--matcha-dim);
+        box-shadow: inset -2px -2px 0 rgba(0, 0, 0, 0.3);
+      }
+      .rblock.now {
+        border-color: var(--gold);
+        animation: blink 1.4s steps(1) infinite;
+      }
+
+      /* == バトルゲージ ==================================================== */
+      .battle-strip {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--sp-6);
+        padding: var(--sp-3) 0;
+        background: rgba(0, 0, 0, 0.35);
+        border-bottom: 3px solid var(--border-ink);
+        font-family: var(--font-mono);
+      }
+      .ks-counter {
+        display: flex;
+        align-items: baseline;
+        gap: var(--sp-2);
+      }
+      .ks-counter .label {
+        font-size: 10px;
+        color: var(--text-faint);
+        letter-spacing: 0.15em;
+      }
+      .ks-counter .num {
+        font-size: 30px;
+        font-weight: 900;
+        color: var(--matcha);
+        text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.5);
+      }
+      .par-hp {
+        display: flex;
+        align-items: center;
+        gap: var(--sp-3);
+      }
+      .hp-frame {
+        width: 280px;
+        height: 18px;
+        background: #0d0b07;
+        border: 3px solid var(--border-bold);
+        position: relative;
+      }
+      .hp-fill {
+        position: absolute;
+        inset: 0;
+        width: 43%;
+        background: repeating-linear-gradient(
+          90deg,
+          var(--matcha) 0 10px,
+          #7fb63f 10px 20px
+        );
+      }
+      .hp-silver {
+        position: absolute;
+        left: 71%;
+        top: -6px;
+        width: 3px;
+        height: 24px;
+        background: var(--text-secondary);
+      }
+      .hp-note {
+        font-size: var(--fs-xs);
+        color: var(--gold);
+        font-weight: 800;
+      }
+      .par-val {
+        font-size: var(--fs-sm);
+        color: var(--text-secondary);
+      }
+
+      /* == メイン ========================================================= */
+      .practice-main {
+        display: grid;
+        grid-template-columns: 1fr 400px;
+        gap: var(--sp-5);
+        padding: var(--sp-5) var(--sp-7);
+      }
+
+      /* エディタ = 修行の間 */
+      .editor-pane {
+        background: var(--bg-editor);
+        padding: 0;
+        overflow: hidden;
+      }
+      .editor-titlebar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--sp-2) var(--sp-4);
+        background: var(--bg-raised);
+        border-bottom: 3px solid var(--border-ink);
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--text-faint);
+        letter-spacing: 0.15em;
+      }
+      .editor-body {
+        display: flex;
+        font-family: var(--font-mono);
+        font-size: 15px;
+        line-height: 2;
+        padding: var(--sp-4) 0;
+      }
+      .gutter {
+        width: 56px;
+        text-align: right;
+        padding-right: var(--sp-4);
+        color: var(--text-faint);
+        user-select: none;
+      }
+      .code {
+        flex: 1;
+        padding-right: var(--sp-4);
+        white-space: pre;
+      }
+      .code .kw {
+        color: #7cb7ff;
+      }
+      .code .str {
+        color: #ffb383;
+      }
+      .code .cm {
+        color: var(--text-faint);
+      }
+      .cursor-block {
+        background: var(--matcha);
+        color: #17260a;
+      }
+      .editor-statusline {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--sp-2) var(--sp-4);
+        background: var(--bg-raised);
+        border-top: 3px solid var(--border-ink);
+        font-family: var(--font-mono);
+        font-size: var(--fs-xs);
+      }
+      .mode-indicator {
+        background: var(--matcha);
+        color: #17260a;
+        font-weight: 900;
+        padding: 1px 12px;
+        letter-spacing: 0.1em;
+      }
+      .statusline-pos {
+        color: var(--text-faint);
+      }
+
+      /* 右ペイン */
+      .side-pane {
+        display: flex;
+        flex-direction: column;
+        gap: var(--sp-5);
+      }
+      .pane-inner {
+        padding: var(--sp-4);
+      }
+      .pane-head {
+        font-family: var(--font-mono);
+        font-size: var(--fs-xs);
+        font-weight: 900;
+        letter-spacing: 0.2em;
+        color: var(--text-secondary);
+        margin-bottom: var(--sp-3);
+      }
+      .goal-code {
+        font-family: var(--font-mono);
+        font-size: 13px;
+        line-height: 1.9;
+        background: var(--bg-editor);
+        border: 2px solid var(--border-ink);
+        padding: var(--sp-3) var(--sp-4);
+        white-space: pre;
+      }
+      .goal-code .hl-del {
+        background: var(--diff-del);
+        text-decoration: line-through;
+        color: var(--text-faint);
+      }
+      .goal-code .hl-add {
+        background: var(--diff-add);
+        color: var(--matcha);
+      }
+      .goal-hint {
+        font-size: var(--fs-xs);
+        color: var(--text-faint);
+        margin-top: var(--sp-2);
+      }
+
+      .keylog {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+      .key {
+        font-family: var(--font-mono);
+        font-size: var(--fs-sm);
+        font-weight: 700;
+        background: var(--bg-raised);
+        border: 2px solid var(--border-bold);
+        border-bottom-width: 5px;
+        padding: 2px 9px;
+        min-width: 26px;
+        text-align: center;
+        box-shadow: var(--drop-sm);
+      }
+      .key.op {
+        color: var(--shu);
+      }
+      .key.motion {
+        color: #7cb7ff;
+      }
+
+      .sensei-corner {
+        display: flex;
+        gap: var(--sp-3);
+        align-items: center;
+      }
+      .sensei-mini {
+        image-rendering: pixelated;
+        flex: none;
+      }
+      .sensei-tip {
+        background: var(--paper);
+        color: var(--paper-ink);
+        font-size: var(--fs-xs);
+        font-weight: 700;
+        padding: var(--sp-2) var(--sp-3);
+        box-shadow: var(--drop-sm);
+      }
+
+      .practice-actions {
+        display: flex;
+        gap: var(--sp-3);
+      }
+      .btn-ghost {
+        flex: 1;
+        background: var(--bg-raised);
+        color: var(--text-secondary);
+        border: 2px solid var(--border-bold);
+        border-bottom-width: 5px;
+        padding: 10px 0;
+        font-size: var(--fs-sm);
+        font-weight: 800;
+        cursor: pointer;
+        font-family: var(--font-mono);
+      }
+      .btn-ghost.flee {
+        color: var(--shu);
+      }
+
+      /* == 状態バリエーション: 一本!! ====================================== */
+      .variants {
+        padding: var(--sp-6) var(--sp-7);
+        border-top: 3px dashed var(--border-ink);
+      }
+      .variants-title {
+        font-family: var(--font-mono);
+        font-size: var(--fs-sm);
+        color: var(--text-faint);
+        margin-bottom: var(--sp-5);
+      }
+      .variant-row {
+        display: flex;
+        gap: var(--sp-6);
+        align-items: flex-start;
+      }
+
+      .ippon-modal {
+        width: 520px;
+        position: relative;
+        overflow: hidden;
+        text-align: center;
+        padding: var(--sp-6);
+        background:
+          repeating-conic-gradient(
+            from 0deg at 50% 40%,
+            rgba(255, 210, 94, 0.08) 0deg 12deg,
+            transparent 12deg 24deg
+          ),
+          var(--bg-surface);
+      }
+      .ippon-word {
+        font-size: 64px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        color: var(--gold);
+        text-shadow:
+          5px 5px 0 var(--shu-dark),
+          8px 8px 0 rgba(0, 0, 0, 0.6);
+        margin-bottom: var(--sp-2);
+        transform: rotate(-3deg);
+      }
+      .ippon-medal {
+        font-size: 44px;
+        margin-bottom: var(--sp-2);
+      }
+      .ippon-sub {
+        font-family: var(--font-mono);
+        font-size: var(--fs-sm);
+        color: var(--text-secondary);
+        margin-bottom: var(--sp-4);
+      }
+      .ippon-sensei {
+        display: flex;
+        justify-content: center;
+        gap: var(--sp-3);
+        align-items: center;
+        margin-bottom: var(--sp-4);
+      }
+      .gain-row {
+        display: flex;
+        justify-content: center;
+        gap: var(--sp-3);
+        margin-bottom: var(--sp-5);
+        font-family: var(--font-mono);
+      }
+      .gain {
+        background: rgba(0, 0, 0, 0.4);
+        border: 2px solid var(--border-ink);
+        padding: 4px 14px;
+        font-size: var(--fs-sm);
+        font-weight: 800;
+      }
+      .gain.xp {
+        color: var(--gold);
+      }
+      .gain.streak {
+        color: var(--shu);
+      }
+      .ippon-actions {
+        display: flex;
+        gap: var(--sp-3);
+      }
+      .btn-next {
+        flex: 1;
+        background: var(--shu);
+        color: #fff6ec;
+        font-weight: 900;
+        font-size: var(--fs-md);
+        letter-spacing: 0.1em;
+        border: none;
+        border-bottom: 6px solid var(--shu-dark);
+        padding: 12px 0;
+        cursor: pointer;
+        box-shadow: var(--drop-sm);
+      }
+      .result-small {
+        width: 220px;
+        text-align: center;
+        padding: var(--sp-4);
+        font-family: var(--font-mono);
+        font-size: var(--fs-sm);
+      }
+      .result-small .w {
+        font-size: 26px;
+        font-weight: 900;
+        display: block;
+        transform: rotate(-2deg);
+      }
+      .result-small.silver .w {
+        color: var(--text-secondary);
+        text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.5);
+      }
+      .result-small.bronze .w {
+        color: #d98c5f;
+        text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.5);
+      }
+      .result-small .m {
+        font-size: 30px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="frame">
+      <header class="hud">
+        <div class="hud-left">
+          <a class="btn-flee-small" href="#">← MAP</a>
+          <span class="quest-name">関数名 fetchData を loadUser に変えよ</span>
+          <span class="quest-src">DRILL · STAGE 2</span>
+        </div>
+        <div class="round-blocks">
+          <span class="label">ROUND</span>
+          <span class="rblock won"></span><span class="rblock won"></span
+          ><span class="rblock now"></span><span class="rblock"></span
+          ><span class="rblock"></span>
+          <span
+            style="font-size: 11px; color: var(--text-faint); margin-left: 8px"
+            >3/5</span
+          >
+        </div>
+      </header>
+
+      <div class="battle-strip">
+        <div class="ks-counter">
+          <span class="label">KEYS</span><span class="num">6</span>
+        </div>
+        <div class="par-hp">
+          <div class="hp-frame">
+            <div class="hp-fill"></div>
+            <div class="hp-silver"></div>
+          </div>
+          <span class="hp-note">🥇 まであと 8</span>
+        </div>
+        <div class="par-val">PAR 14</div>
+      </div>
+
+      <main class="practice-main">
+        <section class="editor-pane pixel-panel">
+          <div class="editor-titlebar">
+            <span>BUFFER: user.ts</span><span>VIM EMULATION</span>
+          </div>
+          <div class="editor-body">
+            <div class="gutter">1 2 3 4 5 6</div>
+            <div class="code">
+              <span class="cm">// ユーザー情報を取得する</span>
+              <span class="kw">async function</span>
+              <span class="cursor-block">f</span>etchData(id:
+              <span class="kw">string</span>) {
+              <span class="kw">const</span> res =
+              <span class="kw">await</span> api.get(<span class="str"
+                >`/users/${id}`</span
+              >); <span class="kw">return</span> res.data; }
+              <span class="kw">export</span> { fetchData };
+            </div>
+          </div>
+          <div class="editor-statusline">
+            <span class="mode-indicator">NORMAL</span>
+            <span class="statusline-pos">2:16</span>
+          </div>
+        </section>
+
+        <aside class="side-pane">
+          <div class="pixel-panel">
+            <div class="pane-inner">
+              <div class="pane-head">TARGET — この形にせよ</div>
+              <div class="goal-code">
+                <span class="cm">// ユーザー情報を取得する</span> async function
+                <span class="hl-del">fetchData</span
+                ><span class="hl-add">loadUser</span>(id: string) { const res =
+                await api.get(`/users/${id}`); return res.data; } export {
+                <span class="hl-del">fetchData</span
+                ><span class="hl-add">loadUser</span> };
+              </div>
+              <div class="goal-hint">
+                変更は2箇所。バッファが一致した瞬間に「一本」だ。
+              </div>
+            </div>
+          </div>
+
+          <div class="pixel-panel">
+            <div class="pane-inner">
+              <div class="pane-head">INPUT — 入力キー</div>
+              <div class="keylog">
+                <span class="key motion">/</span><span class="key">f</span
+                ><span class="key">e</span><span class="key">t</span
+                ><span class="key">c</span><span class="key motion">⏎</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pixel-panel">
+            <div class="pane-inner">
+              <div class="sensei-corner">
+                <svg
+                  class="sensei-mini"
+                  width="64"
+                  height="64"
+                  viewBox="0 0 20 20"
+                >
+                  <rect x="6" y="0" width="1" height="2" fill="#1d1a14" />
+                  <rect x="9" y="0" width="1" height="3" fill="#1d1a14" />
+                  <rect x="12" y="0" width="1" height="2" fill="#1d1a14" />
+                  <rect x="7" y="1" width="1" height="2" fill="#1d1a14" />
+                  <rect x="11" y="1" width="1" height="2" fill="#1d1a14" />
+                  <rect x="5" y="2" width="1" height="2" fill="#1d1a14" />
+                  <rect x="13" y="2" width="1" height="2" fill="#1d1a14" />
+                  <rect x="5" y="4" width="9" height="2" fill="#ff5a3c" />
+                  <rect x="5" y="6" width="9" height="5" fill="#f0b58a" />
+                  <rect x="6" y="7" width="2" height="2" fill="#ffffff" />
+                  <rect x="11" y="7" width="2" height="2" fill="#ffffff" />
+                  <rect x="7" y="8" width="1" height="1" fill="#1d1a14" />
+                  <rect x="11" y="8" width="1" height="1" fill="#1d1a14" />
+                  <rect x="8" y="10" width="3" height="1" fill="#8a2f1c" />
+                  <rect x="6" y="11" width="7" height="4" fill="#f0b58a" />
+                  <rect x="6" y="15" width="7" height="2" fill="#1d1a14" />
+                </svg>
+                <div class="sensei-tip">
+                  検索(<b>/</b>)で飛ぶのは良い筋だ。置換なら
+                  <b>:s</b> という道もあるぞ。
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="practice-actions">
+            <button class="btn-ghost">
+              師範に聞く <span style="color: var(--text-faint)">?</span>
+            </button>
+            <button class="btn-ghost">やり直す</button>
+            <button class="btn-ghost flee">にげる</button>
+          </div>
+        </aside>
+      </main>
+
+      <!-- 状態バリエーション -->
+      <section class="variants">
+        <div class="variants-title">
+          // 状態バリエーション: 一本(金) / 技あり(銀) / 有効(銅)
+        </div>
+        <div class="variant-row">
+          <div class="ippon-modal pixel-panel">
+            <div class="ippon-word">一本!!</div>
+            <div class="ippon-medal">🥇</div>
+            <div class="ippon-sub">12 KEYS / PAR 14 — ベスト更新!</div>
+            <div class="ippon-sensei">
+              <svg
+                class="sensei-mini"
+                width="56"
+                height="56"
+                viewBox="0 0 20 20"
+              >
+                <rect x="6" y="0" width="1" height="2" fill="#1d1a14" />
+                <rect x="9" y="0" width="1" height="3" fill="#1d1a14" />
+                <rect x="12" y="0" width="1" height="2" fill="#1d1a14" />
+                <rect x="5" y="2" width="1" height="2" fill="#1d1a14" />
+                <rect x="13" y="2" width="1" height="2" fill="#1d1a14" />
+                <rect x="5" y="4" width="9" height="2" fill="#ff5a3c" />
+                <rect x="5" y="6" width="9" height="5" fill="#f0b58a" />
+                <rect x="6" y="7" width="2" height="2" fill="#ffffff" />
+                <rect x="11" y="7" width="2" height="2" fill="#ffffff" />
+                <rect x="6" y="8" width="1" height="1" fill="#1d1a14" />
+                <rect x="12" y="8" width="1" height="1" fill="#1d1a14" />
+                <rect x="7" y="10" width="5" height="2" fill="#8a2f1c" />
+                <rect x="6" y="12" width="7" height="3" fill="#f0b58a" />
+                <rect x="15" y="3" width="2" height="5" fill="#f0b58a" />
+                <rect x="2" y="3" width="2" height="5" fill="#f0b58a" />
+              </svg>
+              <div class="sensei-tip">
+                うおおお!! それだ!! <b>その指の動きだ!!</b>
+              </div>
+            </div>
+            <div class="gain-row">
+              <span class="gain xp">+10 XP</span>
+              <span class="gain streak">🔥 12日</span>
+              <span class="gain">茶帯 62%</span>
+            </div>
+            <div class="ippon-actions">
+              <button class="btn-next">次のお題 ▶</button>
+              <button class="btn-ghost">最適解を見る</button>
+            </div>
+          </div>
+          <div class="result-small pixel-panel">
+            <span class="w">技あり!</span><span class="m">🥈</span><br />17 KEYS
+            / PAR 14<br />+7 XP
+          </div>
+          <div class="result-small pixel-panel">
+            <span class="w">有効</span><span class="m">🥉</span><br />26 KEYS /
+            PAR 14<br />+5 XP
+          </div>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>
