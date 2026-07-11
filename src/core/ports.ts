@@ -4,6 +4,10 @@
  * core must never reach for browser APIs, ambient time, or randomness —
  * everything comes in through these interfaces so rules R1–R19 stay testable.
  */
+import type { LocalDate } from "./localDate";
+import type { Attempt } from "./practice/attempt";
+import type { Exercise } from "./practice/exercise";
+import type { Profile } from "./profile";
 
 /** Editor modes the UI needs to display. */
 export type VimMode = "normal" | "insert" | "visual";
@@ -32,9 +36,36 @@ export interface VimEngine {
   onBufferChange(listener: (buffer: string) => void): () => void;
 }
 
-// ProgressStore (persistence for Progress, docs/database.md) is defined here
-// once the storage schema work starts — declaring it before its methods exist
-// would just invent shapes twice.
+/**
+ * Persistence for Progress (docs/database.md). Implementations parse loaded
+ * data at the boundary (zod) and hand core only typed values. Load failures
+ * throw — callers decide recovery (typically the import flow, UC6).
+ */
+export interface ProgressStore {
+  /** Returns the initial profile on first boot (no record yet). */
+  loadProfile(): Promise<Profile>;
+  saveProfile(profile: Profile): Promise<void>;
+  /** Append-only (docs/database.md 削除方針): no update/delete API exists. */
+  appendAttempt(attempt: Attempt): Promise<void>;
+  /** Full history for the analytics screen — never call on the boot path. */
+  loadAttempts(): Promise<Attempt[]>;
+  loadDailyChallenge(date: LocalDate): Promise<DailyChallengeRecord | null>;
+  saveDailyChallenge(record: DailyChallengeRecord): Promise<void>;
+  /** Serialize everything for backup (UC6). */
+  exportJson(): Promise<string>;
+  /** Replace ALL stored data with the imported snapshot (UC6). @throws on invalid/corrupt input. */
+  importJson(json: string): Promise<void>;
+}
+
+/** One day's generated daily challenge and its reward state (R13–R15). */
+export interface DailyChallengeRecord {
+  date: LocalDate;
+  seed: string;
+  /** Frozen generation result so the day's exercise never changes (R13). */
+  exercise: Exercise;
+  /** R15: XP is granted once per day at most. */
+  xpGranted: boolean;
+}
 
 /** Source of "now" (R8/R12 date rules). Local timezone decisions live in core. */
 export interface Clock {

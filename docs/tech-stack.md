@@ -88,6 +88,7 @@
 - **採用(ユニット)**: Vitest + @testing-library/react。core の業務ルール R1〜R19 は UI なしの純粋関数テストとして網羅する(core/shell 構成の主目的)。
 - **未選定(E2E)**: 候補は Playwright。選定基準: 「レッスン開始→キー入力→クリア判定→保存」の一連が実ブラウザで検証できること。導入タイミングは最初の画面が動いてから(CI 構築フェーズで再判断)。
 - **不採用**: Jest(Vite との統合で Vitest に一日の長)。
+- **補助**: fake-indexeddb(dev)— storage 層の結合テスト(保存→リロード→復元)を Node 上で実行するため。ブラウザ実物での検証は E2E 導入時に統合。
 
 ## lint / format
 
