@@ -1,5 +1,7 @@
 # 実装計画 — vim-dojo
 
+> **ステータス: M1〜M8 完了(2026-07-11)。** アプリは https://kensusai.github.io/vim-dojo/ で稼働中。残タスクはステージ2〜4のコンテンツ拡充(継続的に追加)。
+
 最終更新: 2026-07-11 / 前提: 設計ドキュメント一式(overview / domain / architecture / tech-stack / database)とデザインモック案C(`design/mockups/README.md`)は確定済み。
 
 ## 方針

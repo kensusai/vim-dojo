@@ -16,6 +16,8 @@ export default tseslint.config(
         process: "readonly",
         console: "readonly",
         indexedDB: "readonly",
+        navigator: "readonly",
+        document: "readonly",
       },
     },
   },
