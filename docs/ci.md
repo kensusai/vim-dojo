@@ -49,8 +49,8 @@
 
 ## デプロイトリガー(CD への接続点)
 
-- 現時点では CI のみ。デプロイ(GitHub Pages)はインフラ構築フェーズで `main` push → Pages デプロイのワークフローを追加する。
-- 通知 cron(ADR-0004)も同フェーズで別ワークフローとして追加する。CI とは分離する(役割が違うものを1ファイルに混ぜない)。
+- `main` push → `deploy.yml` がビルドして GitHub Pages へ公開(https://kensusai.github.io/vim-dojo/)。詳細は `docs/infrastructure.md`。
+- 通知 cron は `notify.yml`(毎日 11:00 UTC)。Secret `NTFY_TOPIC` 未設定なら何もしない。CI/デプロイ/通知は役割ごとに別ワークフロー。
 
 ## 失敗時の運用
 

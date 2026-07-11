@@ -15,6 +15,7 @@ import type { CommandId } from "../core/ids";
 import { localDateOf } from "../core/localDate";
 import type { DailyChallengeRecord } from "../core/ports";
 import { levelProgress } from "../core/progression/xp";
+import { achievementDefs } from "../core/progression/achievements";
 import { beltForLevel } from "../core/progression/belt";
 import { SenseiSprite, SpeechBubble } from "./Sensei";
 import { useAppStore } from "./storeContext";
@@ -23,6 +24,7 @@ export function HomeScreen() {
   const profile = useAppStore((s) => s.profile);
   const navigate = useAppStore((s) => s.navigate);
   const store = useAppStore((s) => s.store);
+  const setProfile = useAppStore((s) => s.setProfile);
   const clock = useAppStore((s) => s.clock);
   const { level, intoLevel, neededForNext } = levelProgress(profile.xp);
   const belt = beltForLevel(level);
@@ -308,9 +310,106 @@ export function HomeScreen() {
             })}
           </div>
         </section>
+
+        {/* Achievements */}
+        <section className="pixel-panel p-8">
+          <div className="mb-5 flex items-baseline gap-3 font-mono text-lg font-black tracking-widest">
+            MEDALS
+            <span className="text-xs font-normal text-cream-faint">
+              — 実績 {Object.keys(profile.achievements).length}/
+              {achievementDefs.length}
+            </span>
+          </div>
+          <div className="grid grid-cols-4 gap-4">
+            {achievementDefs.map((def) => {
+              const unlocked = profile.achievements[def.id] !== undefined;
+              return (
+                <div
+                  key={def.id}
+                  className={`flex items-center gap-3 border-2 p-3 ${
+                    unlocked
+                      ? "border-gold bg-black/30"
+                      : "border-dashed border-ink-bold opacity-45"
+                  }`}
+                  title={def.description}
+                >
+                  <span className="text-2xl">{unlocked ? def.icon : "❓"}</span>
+                  <div>
+                    <div className="text-sm font-black">{def.name}</div>
+                    <div className="text-[10px] text-cream-faint">
+                      {def.description}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Data footer (UC6) */}
+        <footer className="flex items-center justify-end gap-3 pb-4 font-mono text-xs text-cream-faint">
+          <span>
+            進捗はこのブラウザに保存
+            {profile.lastExportAt
+              ? ` · 最終エクスポート ${profile.lastExportAt.toLocaleDateString("ja-JP")}`
+              : " · まだエクスポートしていない"}
+          </span>
+          <button
+            type="button"
+            onClick={exportProgress}
+            className="btn-chunky border-2 border-b-4 border-ink-bold bg-raised px-4 py-1.5 font-extrabold text-cream-dim"
+          >
+            エクスポート
+          </button>
+          <label className="btn-chunky cursor-pointer border-2 border-b-4 border-ink-bold bg-raised px-4 py-1.5 font-extrabold text-cream-dim">
+            インポート
+            <input
+              type="file"
+              accept="application/json"
+              className="hidden"
+              onChange={importProgress}
+            />
+          </label>
+        </footer>
       </main>
     </div>
   );
+
+  async function exportProgress() {
+    const json = await store.exportJson();
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `vim-dojo-${localDateOf(clock.now())}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    setProfile({ ...profile, lastExportAt: clock.now() });
+  }
+
+  async function importProgress(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (
+      !window.confirm(
+        "現在の進捗をインポート内容で全置換します。よろしいですか?(現在のデータは事前にエクスポートしておくことを推奨)",
+      )
+    ) {
+      event.target.value = "";
+      return;
+    }
+    try {
+      await store.importJson(await file.text());
+      window.location.reload(); // reboot on the imported profile
+    } catch (error) {
+      window.alert(
+        `インポートに失敗しました(データは変更されていません): ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      event.target.value = "";
+    }
+  }
 }
 
 function LessonNode({

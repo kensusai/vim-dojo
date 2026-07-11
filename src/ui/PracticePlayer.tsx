@@ -5,6 +5,7 @@
  * session lifecycle; what happens to a finished attempt is the parent's
  * business via onAttemptFinished.
  */
+import { motion } from "motion/react";
 import {
   useCallback,
   useEffect,
@@ -275,9 +276,14 @@ export function PracticePlayer({
           aria-label="結果"
           className="fixed inset-0 z-10 flex items-center justify-center bg-black/70"
         >
-          <div className="pixel-panel w-[520px] p-8 text-center [background:repeating-conic-gradient(from_0deg_at_50%_40%,rgb(255_210_94/0.08)_0deg_12deg,transparent_12deg_24deg),var(--color-surface)]">
+          <motion.div
+            initial={{ scale: 0.7, opacity: 0, y: 24 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 420, damping: 26 }}
+            className="pixel-panel w-[520px] p-8 text-center [background:repeating-conic-gradient(from_0deg_at_50%_40%,rgb(255_210_94/0.08)_0deg_12deg,transparent_12deg_24deg),var(--color-surface)]"
+          >
             {renderResult(finished, { retry: startExercise, advance })}
-          </div>
+          </motion.div>
         </div>
       )}
     </div>

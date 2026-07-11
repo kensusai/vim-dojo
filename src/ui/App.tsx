@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import type { Clock, ProgressStore } from "../core/ports";
 import { createAppStore, type AppStore } from "./store";
 import { StoreProvider, useAppStore } from "./storeContext";
+import { AchievementToast } from "./AchievementToast";
 import { DailyScreen } from "./DailyScreen";
 import { DrillScreen } from "./DrillScreen";
 import { HomeScreen } from "./HomeScreen";
@@ -72,6 +73,7 @@ export function App({
       return (
         <StoreProvider store={boot.appStore}>
           <Router />
+          <AchievementToast />
         </StoreProvider>
       );
   }

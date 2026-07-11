@@ -1,0 +1,31 @@
+# Daily study reminder via ntfy.sh (ADR-0004). Fires at 20:00 JST (11:00 UTC).
+# The topic name is effectively a credential → GitHub Secret NTFY_TOPIC; the
+# message is a fixed line and never contains progress data (domain.md 禁止事項).
+# GitHub cron can drift by minutes — fine for a reminder (ADR-0004 影響).
+name: Daily reminder
+
+on:
+  schedule:
+    - cron: "0 11 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send ntfy reminder
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: |
+          if [ -z "$NTFY_TOPIC" ]; then
+            echo "NTFY_TOPIC secret is not set; skipping."
+            exit 0
+          fi
+          curl -fsS \
+            -H "Title: vim-dojo" \
+            -H "Tags: crossed_swords" \
+            -d "今日も一本いくぞ!! 師範が道場で待っている → https://kensusai.github.io/vim-dojo/" \
+            "https://ntfy.sh/$NTFY_TOPIC" > /dev/null
+          echo "Reminder sent."

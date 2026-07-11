@@ -7,6 +7,10 @@
 import { create } from "zustand";
 import type { Clock, ProgressStore } from "../core/ports";
 import type { Profile } from "../core/profile";
+import {
+  evaluateAchievements,
+  type AchievementDef,
+} from "../core/progression/achievements";
 
 export type Route =
   | { screen: "home" }
@@ -19,8 +23,14 @@ interface AppState {
   clock: Clock;
   profile: Profile;
   route: Route;
-  /** Replace the profile and persist it (fire-and-forget save). */
+  /** Achievements unlocked by the latest profile change, for the toast. */
+  unlockedToast: AchievementDef[];
+  /**
+   * Replace the profile, run achievement evaluation (R18) and persist the
+   * result (fire-and-forget save).
+   */
   setProfile: (profile: Profile) => void;
+  dismissToast: () => void;
   navigate: (route: Route) => void;
 }
 
@@ -34,10 +44,21 @@ export function createAppStore(
     clock,
     profile,
     route: { screen: "home" },
+    unlockedToast: [],
     setProfile: (profile) => {
-      set({ profile });
-      void get().store.saveProfile(profile);
+      const { profile: withAchievements, newlyUnlocked } = evaluateAchievements(
+        profile,
+        get().clock.now(),
+      );
+      set((state) => ({
+        profile: withAchievements,
+        unlockedToast: newlyUnlocked.length
+          ? [...state.unlockedToast, ...newlyUnlocked]
+          : state.unlockedToast,
+      }));
+      void get().store.saveProfile(withAchievements);
     },
+    dismissToast: () => set({ unlockedToast: [] }),
     navigate: (route) => set({ route }),
   }));
 }
