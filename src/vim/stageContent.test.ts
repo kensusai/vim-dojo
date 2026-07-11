@@ -66,38 +66,72 @@ const solutions: Record<string, string[]> = {
   "s1-l11-e3": ["o", "e", "n", "d", "<Esc>"],
   "s1-l12-e4": ["4", "x"],
   "s1-l12-e5": ["3", "d", "d"],
+  "s2-l1-e1": ["d", "w"],
+  "s2-l1-e2": ["w", "d", "w"],
+  "s2-l1-e3": ["w", "d", "e"],
+  "s2-l2-e1": ["w", "d", "$"],
+  "s2-l2-e2": ["$", "d", "0"],
+  "s2-l3-e1": ["w", "d", "i", "w"],
+  "s2-l3-e2": ["w", "d", "a", "w"],
+  "s2-l4-e1": ["c", "i", "w", "b", "a", "r", "<Esc>"],
+  "s2-l4-e2": ["w", "w", "c", "i", "w", "r", "i", "g", "h", "t", "<Esc>"],
+  "s2-l5-e1": ["f", '"', "d", "i", '"'],
+  "s2-l5-e2": ["f", '"', "c", "i", '"', "y", "o", "<Esc>"],
+  "s2-l6-e1": ["f", "(", "d", "i", "("],
+  "s2-l6-e2": ["f", "(", "c", "i", "(", "y", "<Esc>"],
+  "s2-l7-e1": ["y", "y", "p"],
+  "s2-l7-e2": ["y", "y", "p"],
+  "s2-l7-e3": ["y", "y", "G", "p"],
+  "s2-l8-e1": ["y", "i", "w", "$", "p"],
+  "s2-l9-e1": ["d", "w", "."],
+  "s2-l9-e2": ["d", "w", ".", "."],
+  "s2-l10-e1": [
+    "w",
+    "c",
+    "i",
+    "w",
+    "n",
+    "e",
+    "w",
+    "<Esc>",
+    "f",
+    '"',
+    "c",
+    "i",
+    '"',
+    "n",
+    "e",
+    "w",
+    "<Esc>",
+  ],
+  "s2-l10-e2": ["y", "y", "p", "f", "1", "x", "a", "2", "<Esc>"],
 };
-
-const stage1 = stages[0]!;
 
 /** Exercises whose solution needs j/k, which jsdom can't drive (no layout).
  * Verified in the browser instead (e2e/drive-m6.mjs). */
 const browserOnly = new Set(["s1-l3-e1", "s1-l3-e2", "s1-l3-e3"]);
 
-const INSERT_ENTER = new Set(["i", "a", "A", "I", "o", "O"]);
-
 /**
- * Replay a solution. Tokens are single keystrokes. After an insert-entering
- * command, literal characters are typed (engine.typeText) until "<Esc>",
- * because insert-mode text goes through typing, not Vim.handleKey.
+ * Replay a solution. Tokens are single keystrokes. While the engine reports
+ * insert mode, literal characters are typed (engine.typeText) because insert
+ * text goes through typing, not Vim.handleKey. Judging by the actual mode
+ * (not by which key was pressed) keeps operator+text-object sequences like
+ * "c i w" correct — the "i" there is a text object, not insert-enter.
  */
 function play(engine: ReturnType<typeof createVimEngine>, solution: string[]) {
-  let inserting = false;
   for (const key of solution) {
     if (key === "<Esc>") {
       engine.sendKey("<Esc>");
-      inserting = false;
-    } else if (inserting) {
+    } else if (engine.currentMode() === "insert") {
       engine.typeText(key);
     } else {
       engine.sendKey(key);
-      if (INSERT_ENTER.has(key)) inserting = true;
     }
   }
 }
 
-describe("stage 1 content is solvable with correct pars", () => {
-  for (const lesson of stage1.lessons) {
+describe("authored content is solvable with correct pars", () => {
+  for (const lesson of stages.flatMap((s) => s.lessons)) {
     for (const exercise of lesson.exercises) {
       const run = browserOnly.has(exercise.id) ? it.skip : it;
       run(`${exercise.id}: ${exercise.title}`, () => {
@@ -121,14 +155,14 @@ describe("stage 1 content is solvable with correct pars", () => {
   }
 });
 
-describe("stage 1 respects the unlock constraint (R6)", () => {
+describe("authored stages respect the unlock constraint (R6)", () => {
   it("each exercise only practices commands unlocked by its lesson or earlier", () => {
     // Walk lessons in order, growing the unlocked set as we clear each.
     const cleared = {
       ...initialProfile,
       lessonClears: {} as Record<string, { clearedAt: Date }>,
     };
-    for (const lesson of stage1.lessons) {
+    for (const lesson of stages.flatMap((s) => s.lessons)) {
       // Commands this lesson introduces are available to its own exercises.
       cleared.lessonClears[lesson.id] = { clearedAt: new Date() };
       const available = unlockedCommands(cleared, stages);

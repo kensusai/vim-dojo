@@ -264,13 +264,184 @@ const stage1: Stage = {
   lessons: stage1Lessons,
 };
 
-// Later stages: titles fixed (domain.md), content authored in future work.
+const stage2Lessons: Lesson[] = [
+  {
+    id: lessonId("s2-l1-dw"),
+    title: "dw de — d + 移動 = 消す",
+    brief:
+      "d は「消す」オペレータ。移動と組み合わせて dw(次の単語の頭まで)、de(単語の末尾まで)。vim の文法「動詞+移動」の第一歩。",
+    unlocks: [commandId("dw"), commandId("de")],
+    exercises: [
+      ex("s2-l1-e1", "先頭の単語を消せ", "delete this word", "this word", 2, [
+        "dw",
+      ]),
+      ex("s2-l1-e2", "2単語目を消せ", "keep remove this", "keep this", 3, [
+        "w",
+        "dw",
+      ]),
+      ex("s2-l1-e3", "末尾の単語だけ消せ", "cut here", "cut ", 3, ["w", "de"]),
+    ],
+  },
+  {
+    id: lessonId("s2-l2-dline"),
+    title: "d$ d0 — 行の端まで消す",
+    brief:
+      "d$ でカーソルから行末まで、d0 で行頭まで一掃。行の後半を書き直す前フリに便利。",
+    unlocks: [commandId("d$"), commandId("d0")],
+    exercises: [
+      ex(
+        "s2-l2-e1",
+        "2単語目から行末まで消せ",
+        "hello junk junk",
+        "hello ",
+        3,
+        ["w", "d$"],
+      ),
+      ex("s2-l2-e2", "最後の文字以外を消せ", "abcZ", "Z", 3, ["$", "d0"]),
+    ],
+  },
+  {
+    id: lessonId("s2-l3-diw"),
+    title: "diw daw — 単語をまるごと",
+    brief:
+      "diw は「inner word」= カーソルが単語のどこにあっても単語全体を消す。daw は周りの空白ごと。テキストオブジェクトの入り口。",
+    unlocks: [commandId("diw"), commandId("daw")],
+    exercises: [
+      ex(
+        "s2-l3-e1",
+        "真ん中の単語を消せ",
+        "keep BADWORD keep",
+        "keep  keep",
+        4,
+        ["w", "diw"],
+      ),
+      ex("s2-l3-e2", "空白ごと消せ", "one junk two", "one two", 4, [
+        "w",
+        "daw",
+      ]),
+    ],
+  },
+  {
+    id: lessonId("s2-l4-ciw"),
+    title: "ciw — 消してそのまま書く",
+    brief:
+      "c は「消して挿入モードへ」。ciw で単語を置き換え、書いたら Esc。リネームの基本形。",
+    unlocks: [commandId("ciw")],
+    exercises: [
+      ex("s2-l4-e1", "foo を bar に置き換えろ", "foo", "bar", 7, ["ciw"]),
+      ex("s2-l4-e2", "wrong を right に", "name = wrong", "name = right", 11, [
+        "w",
+        "ciw",
+      ]),
+    ],
+  },
+  {
+    id: lessonId("s2-l5-quotes"),
+    title: 'di" ci" — クォートの中身',
+    brief:
+      'di" は "…" の中身だけを消す。ci" なら消してそのまま書ける。文字列リテラルの修正が一撃。',
+    unlocks: [commandId('di"'), commandId('ci"')],
+    exercises: [
+      ex("s2-l5-e1", "文字列を空にせよ", 'msg = "old text"', 'msg = ""', 5, [
+        "f",
+        'di"',
+      ]),
+      ex("s2-l5-e2", "hi を yo に", 'say "hi"', 'say "yo"', 8, ["f", 'ci"']),
+    ],
+  },
+  {
+    id: lessonId("s2-l6-paren"),
+    title: "di( ci( — カッコの中身",
+    brief: "di( で (…) の中身を消す。ci( で書き換え。引数の差し替えに。",
+    unlocks: [commandId("di("), commandId("ci(")],
+    exercises: [
+      ex("s2-l6-e1", "引数を消せ", "call(remove me)", "call()", 5, [
+        "f",
+        "di(",
+      ]),
+      ex("s2-l6-e2", "x を y に", "f(x)", "f(y)", 7, ["f", "ci("]),
+    ],
+  },
+  {
+    id: lessonId("s2-l7-yyp"),
+    title: "yy p — 行のコピー&ペースト",
+    brief:
+      "yy で行をヤンク(コピー)、p でカーソルの下に貼り付け。行の複製はこの2つ。",
+    unlocks: [commandId("yy"), commandId("p")],
+    exercises: [
+      ex("s2-l7-e1", "行を複製せよ", "alpha", "alpha\nalpha", 3, ["yy", "p"]),
+      ex("s2-l7-e2", "1行目を複製せよ", "one\ntwo", "one\none\ntwo", 3, [
+        "yy",
+        "p",
+      ]),
+      ex(
+        "s2-l7-e3",
+        "1行目を末尾にコピーせよ",
+        "top\nbottom",
+        "top\nbottom\ntop",
+        4,
+        ["yy", "G", "p"],
+      ),
+    ],
+  },
+  {
+    id: lessonId("s2-l8-yiw"),
+    title: "yiw — 単語のコピー",
+    brief: "yiw で単語をヤンク。p は文字単位ならカーソルの直後に貼る。",
+    unlocks: [commandId("yiw")],
+    exercises: [
+      ex("s2-l8-e1", "単語を行末に複製せよ", "dup ", "dup dup", 5, [
+        "yiw",
+        "$",
+        "p",
+      ]),
+    ],
+  },
+  {
+    id: lessonId("s2-l9-dot"),
+    title: ". — 直前の変更をリピート",
+    brief:
+      ". は最後の変更コマンドをもう一度実行する。同じ編集の繰り返しが一打に。vim 最強のキーのひとつ。",
+    unlocks: [commandId(".")],
+    exercises: [
+      ex("s2-l9-e1", "前の2単語を消せ", "aa bb cc dd", "cc dd", 3, ["dw", "."]),
+      ex("s2-l9-e2", "3単語まとめて", "x1 x2 x3 keep", "keep", 4, ["dw", "."]),
+    ],
+  },
+  {
+    id: lessonId("s2-l10-boss"),
+    title: "総仕上げ — 編集の型 皆伝試験",
+    brief:
+      '習った型の組み合わせだ。動詞(d/c/y)+対象(w/iw/i"/i()を意識して、最短の一手を選べ。',
+    unlocks: [],
+    exercises: [
+      ex(
+        "s2-l10-e1",
+        "変数名と文字列を new に",
+        'let old = "old"',
+        'let new = "new"',
+        17,
+        ["ciw", 'ci"'],
+      ),
+      ex("s2-l10-e2", "行を複製して番号を変えろ", "row 1", "row 1\nrow 2", 9, [
+        "yy",
+        "p",
+        "f",
+        "x",
+        "a",
+      ]),
+    ],
+  },
+];
+
 const stage2: Stage = {
   id: "stage-2",
   title: "STAGE 2",
   subtitle: "編集の型",
-  lessons: [],
+  lessons: stage2Lessons,
 };
+
+// Later stages: titles fixed (domain.md), content authored in future work.
 const stage3: Stage = {
   id: "stage-3",
   title: "STAGE 3",

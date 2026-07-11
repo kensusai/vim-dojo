@@ -12,6 +12,7 @@ import { unlockedCommands } from "../core/curriculum/curriculum";
 import { stages } from "../core/curriculum/stages";
 import { generateDrill } from "../core/generation/generate";
 import type { Exercise } from "../core/practice/exercise";
+import type { Medal } from "../core/practice/medal";
 import {
   MedalHeadline,
   PracticePlayer,
@@ -34,6 +35,7 @@ export function DrillScreen() {
   const navigate = useAppStore((s) => s.navigate);
   const [state, setState] = useState<State>({ status: "loading" });
   const [lastXp, setLastXp] = useState(0);
+  const [bounty, setBounty] = useState<(Medal | "abandoned" | null)[]>([]);
   const profileRef = useRef(profile);
   profileRef.current = profile;
 
@@ -47,6 +49,7 @@ export function DrillScreen() {
         unlocked: unlockedCommands(profileRef.current, stages),
         weakCommands: weakCommands(attempts),
       });
+      setBounty(exercises.map(() => null));
       setState(
         exercises.length === 0
           ? { status: "unavailable" }
@@ -89,7 +92,15 @@ export function DrillScreen() {
     }
     if (next !== profileRef.current) setProfile(next);
     setLastXp(practice.xpGained);
+    setBounty((b) =>
+      b.map((r, i) =>
+        i === info.exerciseIndex ? (info.attempt.medal ?? "abandoned") : r,
+      ),
+    );
   };
+
+  // 敵リスト: 進行は線形なので「未撃破の先頭」が現在の相手
+  const currentEnemy = bounty.findIndex((r) => r === null);
 
   return (
     <PracticePlayer
@@ -109,11 +120,76 @@ export function DrillScreen() {
           </span>
         </>
       }
+      sidePanel={
+        <div className="pixel-panel p-4">
+          <div className="mb-3 font-mono text-xs font-black tracking-[0.2em] text-shu">
+            ⚔️ WANTED — 賞金首{" "}
+            {bounty.filter((r) => r && r !== "abandoned").length}/
+            {state.exercises.length} 撃破
+          </div>
+          <div className="flex flex-col gap-2">
+            {state.exercises.map((ex, i) => {
+              const result = bounty[i];
+              const isCurrent = i === currentEnemy;
+              return (
+                <div
+                  key={ex.id}
+                  className={`flex items-center gap-3 border-2 px-3 py-1.5 font-mono text-sm ${
+                    isCurrent
+                      ? "border-shu bg-[#241512]"
+                      : result
+                        ? "border-ink opacity-60"
+                        : "border-ink-bold opacity-40"
+                  }`}
+                >
+                  <span className="text-xl">
+                    {result === null
+                      ? "👾"
+                      : result === "abandoned"
+                        ? "💨"
+                        : "💥"}
+                  </span>
+                  <span
+                    className={`font-black ${isCurrent ? "text-shu" : "text-cream-dim"} ${result && result !== "abandoned" ? "line-through" : ""}`}
+                  >
+                    {ex.practicedCommands[0]}
+                  </span>
+                  {isCurrent && (
+                    <span className="blink ml-auto text-[10px] text-gold">
+                      ◀ いまの相手
+                    </span>
+                  )}
+                  {result && result !== "abandoned" && (
+                    <span className="ml-auto">
+                      {result === "gold"
+                        ? "🥇"
+                        : result === "silver"
+                          ? "🥈"
+                          : "🥉"}
+                    </span>
+                  )}
+                  {result === "abandoned" && (
+                    <span className="ml-auto text-[10px] text-cream-faint">
+                      逃げられた
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {state.exercises[currentEnemy]?.hint && (
+            <p className="mt-3 border-t-2 border-ink pt-2 text-xs text-cream-dim">
+              💡 {state.exercises[currentEnemy].hint}
+            </p>
+          )}
+        </div>
+      }
       onAttemptFinished={onAttemptFinished}
       renderResult={(info, controls) => (
         <DrillResult
           info={info}
           xpGained={lastXp}
+          bounty={bounty}
           onRetry={controls.retry}
           onNext={
             info.isLastExercise
@@ -129,11 +205,13 @@ export function DrillScreen() {
 function DrillResult({
   info,
   xpGained,
+  bounty,
   onRetry,
   onNext,
 }: {
   info: FinishedInfo;
   xpGained: number;
+  bounty: (Medal | "abandoned" | null)[];
   onRetry: () => void;
   onNext: () => void;
 }) {
@@ -141,9 +219,24 @@ function DrillResult({
     <>
       <MedalHeadline attempt={info.attempt} />
       {info.isLastExercise && (
-        <div className="mt-3 font-mono text-sm font-black text-matcha">
-          5本勝負、完!!
-        </div>
+        <>
+          <div className="mt-3 font-mono text-sm font-black text-matcha">
+            5本勝負、完!! 戦績:
+          </div>
+          <div className="mt-1 text-2xl tracking-widest">
+            {bounty
+              .map((r) =>
+                r === "gold"
+                  ? "🥇"
+                  : r === "silver"
+                    ? "🥈"
+                    : r === "bronze"
+                      ? "🥉"
+                      : "💨",
+              )
+              .join(" ")}
+          </div>
+        </>
       )}
       <ResultFooter
         xpGained={xpGained}

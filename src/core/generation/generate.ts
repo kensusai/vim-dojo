@@ -26,19 +26,26 @@ function generateOne(
   usable: ExerciseTemplate[],
   id: string,
   weakCommands?: Set<CommandId>,
-): Exercise {
+  avoidTemplateId?: string,
+): { exercise: Exercise; templateId: string } {
+  // Variety: avoid dealing the same template twice in a row when there is
+  // a choice (5×同じ敵はドリルが単調になる — playtest feedback).
+  const candidates =
+    usable.length > 1 && avoidTemplateId
+      ? usable.filter((t) => t.id !== avoidTemplateId)
+      : usable;
   // Weakness weighting (R19): templates practicing a weak command appear
   // twice in the draw pool, doubling their chance.
   const pool =
     weakCommands && weakCommands.size > 0
-      ? usable.flatMap((t) =>
+      ? candidates.flatMap((t) =>
           t.practices.some((c) => weakCommands.has(c)) ? [t, t] : [t],
         )
-      : usable;
+      : candidates;
   const template = pool[nextInt(rng, pool.length)]!;
   const { exercise } = template.generate(rng, id);
   assertValidExercise(exercise); // 例外ケース: 自明・解なしを構造的に排除
-  return exercise;
+  return { exercise, templateId: template.id };
 }
 
 /**
@@ -53,7 +60,7 @@ export function generateDailyChallenge(
   if (usable.length === 0) return null;
   const seed = `daily-${date}`;
   const rng = seededRandom(seed);
-  const exercise = generateOne(rng, usable, `daily-${date}`);
+  const { exercise } = generateOne(rng, usable, `daily-${date}`);
   return { date, seed, exercise, xpGranted: false };
 }
 
@@ -72,7 +79,16 @@ export function generateDrill(options: {
   if (usable.length === 0) return [];
   const rng = seededRandom(`drill-${options.seed}`);
   const weak = new Set(options.weakCommands ?? []);
-  return Array.from({ length: options.count ?? 5 }, (_, i) =>
-    generateOne(rng, usable, `drill-${options.seed}-${i}`, weak),
-  );
+  let lastTemplateId: string | undefined;
+  return Array.from({ length: options.count ?? 5 }, (_, i) => {
+    const { exercise, templateId } = generateOne(
+      rng,
+      usable,
+      `drill-${options.seed}-${i}`,
+      weak,
+      lastTemplateId,
+    );
+    lastTemplateId = templateId;
+    return exercise;
+  });
 }
