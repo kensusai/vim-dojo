@@ -24,6 +24,10 @@ jobs:
         with:
           node-version-file: .node-version
           cache: npm
+      # Node 22 bundles npm 10, which reads this lockfile differently from
+      # the npm 11 used locally (optional-dep entries) and fails `npm ci`.
+      # Keep CI on the same npm major as local development (docs/ci.md).
+      - run: npm install -g npm@11
       - run: npm ci
       - run: npm run lint
       - run: npm run format:check
