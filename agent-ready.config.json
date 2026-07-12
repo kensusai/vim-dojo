@@ -21,5 +21,6 @@
     "infra-construction",
     "monitoring-design"
   ],
-  "stacks": "auto"
+  "stacks": "auto",
+  "readme": false
 }
