@@ -12,7 +12,10 @@ export function replaySolution(
   solution: string[],
 ): void {
   for (const key of solution) {
-    if (key === "<Esc>") {
+    if (key.startsWith(":")) {
+      // an Ex command line, e.g. ":%s/foo/bar/g" → run headlessly
+      engine.sendEx(key.slice(1));
+    } else if (key === "<Esc>") {
       engine.sendKey("<Esc>");
     } else if (engine.currentMode() === "insert") {
       engine.typeText(key);

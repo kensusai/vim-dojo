@@ -88,7 +88,10 @@ export function createVimEngine(parent: Element): CodeMirrorVimEngine {
   const onDomKeydown = (event: KeyboardEvent) => {
     if (!PURE_MODIFIERS.has(event.key)) emitKeystroke(event.key);
   };
-  view.contentDOM.addEventListener("keydown", onDomKeydown, true);
+  // Listen on view.dom (not contentDOM) so keys typed in the vim search / ex
+  // command panel — which lives inside the editor DOM but outside the content
+  // area — are also counted (R2). Without this, :s and / typing was free.
+  view.dom.addEventListener("keydown", onDomKeydown, true);
 
   const cm = () => {
     const instance = getCM(view);
@@ -154,7 +157,7 @@ export function createVimEngine(parent: Element): CodeMirrorVimEngine {
       view.contentDOM.blur();
     },
     destroy() {
-      view.contentDOM.removeEventListener("keydown", onDomKeydown, true);
+      view.dom.removeEventListener("keydown", onDomKeydown, true);
       keystrokeListeners.clear();
       bufferListeners.clear();
       view.destroy();

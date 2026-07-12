@@ -464,18 +464,205 @@ const stage2: Stage = {
   lessons: stage2Lessons,
 };
 
-// Later stages: titles fixed (domain.md), content authored in future work.
+const stage3Lessons: Lesson[] = [
+  {
+    id: lessonId("s3-l1-s"),
+    title: ":s — 現在行を置換",
+    brief:
+      ":s/古い/新しい/ で今いる行の最初の一致を置き換える。: を押すと下にコマンド入力欄が出る。実行は Enter。",
+    unlocks: [commandId(":s")],
+    note: "vim の魔法「置換」の入り口。範囲・フラグを付けて強力になる(次のレッスン)。",
+    exercises: [
+      ex(
+        "s3-l1-e1",
+        "foo を bar に(1行)",
+        "let foo = 1;",
+        "let bar = 1;",
+        12,
+        [":s"],
+        ": を押して s/foo/bar/ と打ち Enter。:s/foo/bar/ で11キー。",
+      ),
+      ex(
+        "s3-l1-e2",
+        "cat を dog に",
+        "my cat sleeps",
+        "my dog sleeps",
+        12,
+        [":s"],
+        ":s/cat/dog/ と打って Enter。",
+      ),
+    ],
+  },
+  {
+    id: lessonId("s3-l2-sg"),
+    title: ":s//g — 行内をすべて置換",
+    brief:
+      "末尾に g フラグを付けると、その行の一致を全部置き換える。g が無いと最初の1個だけ。",
+    unlocks: [commandId(":s//g")],
+    exercises: [
+      ex(
+        "s3-l2-e1",
+        "行内の x を全部 o に",
+        "xxx marks",
+        "ooo marks",
+        9,
+        [":s//g"],
+        ":s/x/o/g と打って Enter。g で行内全部。",
+      ),
+    ],
+  },
+  {
+    id: lessonId("s3-l3-percent"),
+    title: ":%s — ファイル全体を置換",
+    brief:
+      ":%s/…/…/g で % = 全行が対象。ファイル中の一致をまとめて置換する、リファクタの主役。",
+    unlocks: [commandId(":%s")],
+    note: "変数名の一括リネームはこれ一発。実務でいちばん「vimすごい」となる瞬間。",
+    exercises: [
+      ex(
+        "s3-l3-e1",
+        "全 tmp を out に",
+        "tmp = f(tmp);\nreturn tmp;",
+        "out = f(out);\nreturn out;",
+        14,
+        [":%s"],
+        ":%s/tmp/out/g と打って Enter。全行・行内全部。",
+      ),
+      ex(
+        "s3-l3-e2",
+        "全 old を new に",
+        "old.a = old.b;\nold.c = 1;",
+        "new.a = new.b;\nnew.c = 1;",
+        14,
+        [":%s"],
+        ":%s/old/new/g。",
+      ),
+    ],
+  },
+  {
+    id: lessonId("s3-l4-g"),
+    title: ":g/…/d — 該当行を一掃",
+    brief:
+      ":g/パターン/d でパターンを含む行を全部削除。ログやコメントの一括除去に。",
+    unlocks: [commandId(":g")],
+    exercises: [
+      ex(
+        "s3-l4-e1",
+        "DEBUG 行を消せ",
+        "keep 1\nDEBUG x\nkeep 2\nDEBUG y",
+        "keep 1\nkeep 2",
+        11,
+        [":g"],
+        ":g/DEBUG/d と打って Enter。含む行を全削除。",
+      ),
+    ],
+  },
+  {
+    id: lessonId("s3-l5-boss"),
+    title: "総仕上げ — 検索置換 皆伝試験",
+    boss: true,
+    brief:
+      "範囲(%)・フラグ(g)・グローバル(:g)を使い分けろ。最短の一手で全部片付けるんだ。",
+    unlocks: [],
+    exercises: [
+      ex(
+        "s3-l5-e1",
+        "全 foo を bar に一括変換",
+        "foo(foo, foo);",
+        "bar(bar, bar);",
+        14,
+        [":%s"],
+        ":%s/foo/bar/g で全部いっぺんに。1行でも % と g で確実に。",
+      ),
+    ],
+  },
+];
+
+const stage4Lessons: Lesson[] = [
+  {
+    id: lessonId("s4-l1-named"),
+    title: '"a — 名前つきレジスタに保存',
+    brief:
+      '"ayy で「レジスタ a」に行をヤンク、"ap で貼り付け。普通の yank(無名レジスタ)を上書きせずに複数のコピーを持てる。',
+    unlocks: [commandId('"ayy'), commandId('"ap')],
+    note: "レジスタは a〜z の26個。使い分けると「あのコピー、消えた!」が無くなる。",
+    exercises: [
+      ex(
+        "s4-l1-e1",
+        "1行目をレジスタaに保存して末尾へ複製",
+        "first\nsecond",
+        "first\nsecond\nfirst",
+        8,
+        ['"ayy', "G", '"ap'],
+        '"ayy で first を a に → G で最終行 → "ap で貼る。6キー。',
+      ),
+    ],
+  },
+  {
+    id: lessonId("s4-l2-two"),
+    title: "2つのレジスタを使い分ける",
+    brief:
+      "a と b、2つのレジスタに別々の行を持てば、順番を入れ替える貼り付けも自在。",
+    unlocks: [commandId('"byy'), commandId('"bp')],
+    exercises: [
+      ex(
+        "s4-l2-e1",
+        "2行をコピーして末尾に順に足す",
+        "alpha\nbeta",
+        "alpha\nbeta\nalpha\nbeta",
+        16,
+        ['"ayy', "j", '"byy', "G", '"ap', '"bp'],
+        '"ayy で alpha、j して "byy で beta、G で末尾、"ap "bp で順に貼る。',
+      ),
+    ],
+  },
+  {
+    id: lessonId("s4-l3-boss"),
+    title: "総仕上げ — 奥義 皆伝試験",
+    boss: true,
+    brief:
+      "レジスタを操り、無名レジスタに頼らず狙った行を狙った場所へ。これができれば奥義皆伝だ。",
+    unlocks: [],
+    exercises: [
+      ex(
+        "s4-l3-e1",
+        "見出し行を末尾に2つ複製せよ",
+        "# Title\nbody\nmore",
+        "# Title\nbody\nmore\n# Title\n# Title",
+        12,
+        ['"ayy', "j", '"ap', "G", '"ap'],
+        '"ayy で見出しを a に控える。あとは "ap を2回。同じレジスタは何度でも貼れるのが強みだ。',
+      ),
+    ],
+  },
+];
+
 const stage3: Stage = {
   id: "stage-3",
   title: "STAGE 3",
   subtitle: "検索と置換",
-  lessons: [],
+  lessons: stage3Lessons,
 };
 const stage4: Stage = {
   id: "stage-4",
   title: "STAGE 4",
-  subtitle: "レジスタ・複数ファイル",
+  subtitle: "レジスタの奥義",
+  lessons: stage4Lessons,
+};
+
+// Roadmap stubs (titles set; content authored in future turns). Shown on the
+// map so the journey doesn't look like it ends at 4 (owner: 4は少ない).
+const stage5: Stage = {
+  id: "stage-5",
+  title: "STAGE 5",
+  subtitle: "効率化の型",
+  lessons: [],
+};
+const stage6: Stage = {
+  id: "stage-6",
+  title: "STAGE 6",
+  subtitle: "検索の達人",
   lessons: [],
 };
 
-export const stages: Stage[] = [stage1, stage2, stage3, stage4];
+export const stages: Stage[] = [stage1, stage2, stage3, stage4, stage5, stage6];

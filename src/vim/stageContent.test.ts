@@ -38,8 +38,13 @@ describe("authored content is solvable with correct pars", () => {
           ).toBeDefined();
           replaySolution(engine, solution!);
           expect(engine.currentBuffer()).toBe(exercise.targetBuffer);
-          // Par is the author's best: the recorded solution must match it.
-          expect(solution!.length).toBe(exercise.par);
+          // Par is the author's best keystroke count: an Ex-command token
+          // like ":%s/a/b/g" is typed as its characters plus Enter.
+          const parKeys = solution!.reduce(
+            (n, token) => n + (token.startsWith(":") ? token.length + 1 : 1),
+            0,
+          );
+          expect(parKeys).toBe(exercise.par);
         } finally {
           engine.destroy();
         }
