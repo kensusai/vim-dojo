@@ -25,7 +25,7 @@ test("boot → lesson 1 → clear → unlock → streak persists", async ({ page
   // Lesson 1 exercises are all solved with x presses. The session auto-
   // focuses the editor with the cursor at 0,0 — real keydowns must clear
   // each at exactly par (this exact assertion is the R2 regression net).
-  const solutions = [["x"], ["x"], ["x", "x"], ["x", "x", "x"]];
+  const solutions = [["x"], ["x"], ["x", "x"], ["x", "x", "x"], ["x"]];
   for (const [index, solution] of solutions.entries()) {
     await page.waitForTimeout(300);
     await pressKeys(page, solution);
