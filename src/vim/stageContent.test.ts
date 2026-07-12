@@ -21,7 +21,13 @@ beforeAll(installCodeMirrorDomStubs);
 
 /** Exercises whose solution needs j/k, which jsdom can't drive (no layout).
  * Verified in the browser instead (e2e/drive-m6.mjs). */
-const browserOnly = new Set(["s1-l3-e1", "s1-l3-e2", "s1-l3-e3"]);
+const browserOnly = new Set([
+  "s1-l3-e1",
+  "s1-l3-e2",
+  "s1-l3-e3",
+  "s1-l3-e4",
+  "s1-l3-e5",
+]);
 
 describe("authored content is solvable with correct pars", () => {
   for (const lesson of stages.flatMap((s) => s.lessons)) {
