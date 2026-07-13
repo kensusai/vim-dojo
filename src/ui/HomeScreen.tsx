@@ -16,6 +16,7 @@ import { localDateOf } from "../core/localDate";
 import type { DailyChallengeRecord } from "../core/ports";
 import { levelProgress } from "../core/progression/xp";
 import { achievementDefs } from "../core/progression/achievements";
+import { DIFFICULTIES, configFor } from "../core/difficulty";
 import { beltForLevel } from "../core/progression/belt";
 import { SenseiSprite, SpeechBubble } from "./Sensei";
 import { useAppStore } from "./storeContext";
@@ -25,6 +26,8 @@ export function HomeScreen() {
   const navigate = useAppStore((s) => s.navigate);
   const store = useAppStore((s) => s.store);
   const setProfile = useAppStore((s) => s.setProfile);
+  const difficulty = useAppStore((s) => s.difficulty);
+  const setDifficulty = useAppStore((s) => s.setDifficulty);
   const clock = useAppStore((s) => s.clock);
   const { level, intoLevel, neededForNext } = levelProgress(profile.xp);
   const belt = beltForLevel(level);
@@ -100,6 +103,25 @@ export function HomeScreen() {
                 ))}
               </div>
             </div>
+          </div>
+          <div className="flex items-center gap-1 border-3 border-ink bg-raised px-2 py-2 shadow-[3px_3px_0_rgb(0_0_0/0.6)]">
+            <span className="mr-1 text-[10px] tracking-widest text-cream-faint">
+              難易度
+            </span>
+            {DIFFICULTIES.map((d) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => setDifficulty(d)}
+                className={`px-2 py-0.5 text-xs font-black ${
+                  d === difficulty
+                    ? "bg-shu text-[#fff6ec]"
+                    : "text-cream-faint hover:text-cream"
+                }`}
+              >
+                {configFor(d).label}
+              </button>
+            ))}
           </div>
           <div className="flex items-center gap-2 border-3 border-ink bg-raised px-4 py-2 shadow-[3px_3px_0_rgb(0_0_0/0.6)]">
             <span className="text-xl">🔥</span>

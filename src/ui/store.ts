@@ -5,6 +5,7 @@
  * the profile and dispatch intents — they never compute rules (docs/frontend.md).
  */
 import { create } from "zustand";
+import type { Difficulty } from "../core/difficulty";
 import type { Clock, ProgressStore } from "../core/ports";
 import type { Profile } from "../core/profile";
 import {
@@ -18,11 +19,22 @@ export type Route =
   | { screen: "daily" }
   | { screen: "drill" };
 
+const DIFFICULTY_KEY = "vim-dojo-difficulty";
+function loadDifficulty(): Difficulty {
+  const v =
+    typeof localStorage !== "undefined"
+      ? localStorage.getItem(DIFFICULTY_KEY)
+      : null;
+  return v === "easy" || v === "hard" ? v : "normal";
+}
+
 interface AppState {
   store: ProgressStore;
   clock: Clock;
   profile: Profile;
   route: Route;
+  difficulty: Difficulty;
+  setDifficulty: (d: Difficulty) => void;
   /** Achievements unlocked by the latest profile change, for the toast. */
   unlockedToast: AchievementDef[];
   /**
@@ -44,6 +56,11 @@ export function createAppStore(
     clock,
     profile,
     route: { screen: "home" },
+    difficulty: loadDifficulty(),
+    setDifficulty: (difficulty) => {
+      localStorage.setItem(DIFFICULTY_KEY, difficulty);
+      set({ difficulty });
+    },
     unlockedToast: [],
     setProfile: (profile) => {
       const { profile: withAchievements, newlyUnlocked } = evaluateAchievements(

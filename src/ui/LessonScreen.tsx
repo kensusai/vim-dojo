@@ -87,17 +87,17 @@ export function LessonScreen({
           </span>
         </>
       }
-      sidePanel={({ exercise, keystrokes }) =>
+      sidePanel={({ exercise, keystrokes, showHints }) =>
         lesson.boss ? (
           <>
             <BossPanel exercise={exercise} keystrokes={keystrokes} />
-            {exercise.hint && (
+            {showHints && exercise.hint && (
               <div className="pixel-panel p-4">
                 <p className="text-sm text-cream-dim">🎯 {exercise.hint}</p>
               </div>
             )}
           </>
-        ) : (
+        ) : !showHints ? null : (
           <div className="pixel-panel p-4">
             <div className="mb-2 flex items-center gap-2 font-mono text-xs font-black tracking-[0.2em] text-matcha">
               <SenseiSprite size={28} /> 師範のひとこと

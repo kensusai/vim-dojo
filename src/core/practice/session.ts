@@ -10,6 +10,7 @@ import {
   type Exercise,
   type ExerciseSource,
 } from "./exercise";
+import type { Difficulty } from "../difficulty";
 import { judgeMedal } from "./medal";
 
 export type SessionState = "playing" | "cleared" | "abandoned";
@@ -36,8 +37,10 @@ export function startPracticeSession(options: {
   source: ExerciseSource;
   engine: VimEngine;
   clock: Clock;
+  difficulty?: Difficulty;
 }): PracticeSession {
   const { exercise, source, engine, clock } = options;
+  const difficulty = options.difficulty ?? "normal";
   assertValidExercise(exercise);
 
   let state: SessionState = "playing";
@@ -56,7 +59,10 @@ export function startPracticeSession(options: {
     playedAt,
     result,
     keystrokes,
-    medal: result === "cleared" ? judgeMedal(exercise.par, keystrokes) : null,
+    medal:
+      result === "cleared"
+        ? judgeMedal(exercise.par, keystrokes, difficulty)
+        : null,
     practicedCommands: exercise.practicedCommands,
     durationMs: firstKeystrokeAt
       ? playedAt.getTime() - firstKeystrokeAt.getTime()

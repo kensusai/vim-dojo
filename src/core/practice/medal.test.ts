@@ -31,3 +31,23 @@ describe("judgeMedal (R3)", () => {
     expect(() => judgeMedal(12, 5.5)).toThrow(RangeError);
   });
 });
+
+describe("judgeMedal with difficulty", () => {
+  it("easy widens the gold band above par", () => {
+    // par 10: easy gold <= floor(10*1.4)=14
+    expect(judgeMedal(10, 14, "easy")).toBe("gold");
+    expect(judgeMedal(10, 15, "easy")).toBe("silver"); // <= 10*2=20
+    expect(judgeMedal(10, 21, "easy")).toBe("bronze");
+  });
+
+  it("hard keeps gold at par (optimal), like normal thresholds", () => {
+    expect(judgeMedal(10, 10, "hard")).toBe("gold");
+    expect(judgeMedal(10, 11, "hard")).toBe("silver");
+    expect(judgeMedal(10, 16, "hard")).toBe("bronze");
+  });
+
+  it("defaults to normal", () => {
+    expect(judgeMedal(10, 10)).toBe("gold");
+    expect(judgeMedal(10, 14)).toBe("silver");
+  });
+});

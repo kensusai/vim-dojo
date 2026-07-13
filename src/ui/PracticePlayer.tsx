@@ -22,6 +22,7 @@ import {
 } from "../core/practice/session";
 import type { VimMode } from "../core/ports";
 import { levelProgress } from "../core/progression/xp";
+import { configFor } from "../core/difficulty";
 import { SenseiHintPanel } from "./Sensei";
 import { isMuted, playClear, toggleMuted } from "./sound";
 import { useAppStore } from "./storeContext";
@@ -65,7 +66,11 @@ export function PracticePlayer({
    * boss (keystrokes updates on every key). */
   sidePanel?:
     | ReactNode
-    | ((context: { exercise: Exercise; keystrokes: number }) => ReactNode);
+    | ((context: {
+        exercise: Exercise;
+        keystrokes: number;
+        showHints: boolean;
+      }) => ReactNode);
   /** Called once per finished attempt (cleared or abandoned via retry). */
   onAttemptFinished: (info: FinishedInfo) => void;
   /**
@@ -80,6 +85,8 @@ export function PracticePlayer({
 }) {
   const clock = useAppStore((s) => s.clock);
   const store = useAppStore((s) => s.store);
+  const difficulty = useAppStore((s) => s.difficulty);
+  const aids = configFor(difficulty);
 
   const hostRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<CodeMirrorVimEngine | null>(null);
@@ -108,7 +115,13 @@ export function PracticePlayer({
     setKeystrokes(0);
     setRecentKeys([]);
     setFinished(null);
-    const session = startPracticeSession({ exercise, source, engine, clock });
+    const session = startPracticeSession({
+      exercise,
+      source,
+      engine,
+      clock,
+      difficulty,
+    });
     sessionRef.current = session;
     const isLast = exerciseIndex === exercises.length - 1;
     session.onCleared((attempt) => {
@@ -124,7 +137,7 @@ export function PracticePlayer({
       setFinished(info);
     });
     engine.focus();
-  }, [clock, exercise, exerciseIndex, exercises.length, source]);
+  }, [clock, difficulty, exercise, exerciseIndex, exercises.length, source]);
 
   useEffect(() => {
     if (!hostRef.current) return;
@@ -160,13 +173,14 @@ export function PracticePlayer({
 
   const advance = () => setExerciseIndex((i) => i + 1);
 
-  const silverLine = Math.ceil(exercise.par * 1.5);
+  const goldLine = Math.floor(exercise.par * aids.goldFactor);
+  const silverLine = Math.ceil(exercise.par * aids.silverFactor);
   const gaugePercent = Math.min(100, (keystrokes / silverLine) * 100);
-  const parMarker = (exercise.par / silverLine) * 100;
+  const parMarker = (goldLine / silverLine) * 100;
   // Which medal is still reachable — the gauge/counter change color the
   // moment a line is crossed (playtest feedback: crossing felt like nothing).
   const zone =
-    keystrokes <= exercise.par
+    keystrokes <= goldLine
       ? "gold"
       : keystrokes <= silverLine
         ? "silver"
@@ -183,7 +197,7 @@ export function PracticePlayer({
   }[zone];
   const medalHint =
     zone === "gold"
-      ? `🥇 まであと ${exercise.par - keystrokes}`
+      ? `🥇 まであと ${goldLine - keystrokes}`
       : zone === "silver"
         ? `🥈 まであと ${silverLine - keystrokes}`
         : "🥉 有効 — 何キーでもクリアはできる";
@@ -292,8 +306,9 @@ export function PracticePlayer({
 
         <aside className="flex flex-col gap-5">
           {(typeof sidePanel === "function"
-            ? sidePanel({ exercise, keystrokes })
-            : sidePanel) ?? <SenseiHintPanel hint={exercise.hint} />}
+            ? sidePanel({ exercise, keystrokes, showHints: aids.showHints })
+            : sidePanel) ??
+            (aids.showHints ? <SenseiHintPanel hint={exercise.hint} /> : null)}
 
           <div className="pixel-panel p-4">
             <div className="mb-2 font-mono text-xs font-black tracking-[0.2em] text-cream-dim">
@@ -304,21 +319,23 @@ export function PracticePlayer({
             </pre>
           </div>
 
-          <div className="pixel-panel p-4">
-            <div className="mb-2 font-mono text-xs font-black tracking-[0.2em] text-cream-dim">
-              INPUT — 入力キー
+          {aids.showKeyLog && (
+            <div className="pixel-panel p-4">
+              <div className="mb-2 font-mono text-xs font-black tracking-[0.2em] text-cream-dim">
+                INPUT — 入力キー
+              </div>
+              <div className="flex min-h-8 flex-wrap gap-1">
+                {recentKeys.map((key, i) => (
+                  <kbd
+                    key={`${i}-${key}`}
+                    className="min-w-[26px] border-2 border-b-4 border-ink-bold bg-raised px-2 text-center font-mono text-sm font-bold"
+                  >
+                    {key === " " ? "␣" : key}
+                  </kbd>
+                ))}
+              </div>
             </div>
-            <div className="flex min-h-8 flex-wrap gap-1">
-              {recentKeys.map((key, i) => (
-                <kbd
-                  key={`${i}-${key}`}
-                  className="min-w-[26px] border-2 border-b-4 border-ink-bold bg-raised px-2 text-center font-mono text-sm font-bold"
-                >
-                  {key === " " ? "␣" : key}
-                </kbd>
-              ))}
-            </div>
-          </div>
+          )}
 
           <button
             type="button"
@@ -346,10 +363,12 @@ export function PracticePlayer({
             className="pixel-panel w-[560px] p-8 text-center [background:repeating-conic-gradient(from_0deg_at_50%_40%,rgb(255_210_94/0.08)_0deg_12deg,transparent_12deg_24deg),var(--color-surface)]"
           >
             {renderResult(finished, { retry: startExercise, advance })}
-            <SolutionReveal
-              exercise={exercise}
-              keystrokes={finished.attempt.keystrokes}
-            />
+            {aids.showSolution && (
+              <SolutionReveal
+                exercise={exercise}
+                keystrokes={finished.attempt.keystrokes}
+              />
+            )}
           </motion.div>
         </div>
       )}
