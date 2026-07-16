@@ -5,6 +5,8 @@
  */
 import { useEffect, useState } from "react";
 import type { Clock, ProgressStore } from "../core/ports";
+import { initialProfile } from "../core/profile";
+import { isBackupConfigured, pullBackup } from "../backup/gistBackup";
 import { createAppStore, type AppStore } from "./store";
 import { StoreProvider, useAppStore } from "./storeContext";
 import { AchievementToast } from "./AchievementToast";
@@ -33,7 +35,24 @@ export function App({
     void (async () => {
       try {
         const store = await openStore();
-        const profile = await store.loadProfile();
+        let profile = await store.loadProfile();
+        // Recovery: if local storage is empty (e.g. the browser purged
+        // IndexedDB after inactivity) but a cloud backup is configured, pull
+        // it back before showing a fresh start (ADR-0008).
+        const looksEmpty =
+          Object.keys(profile.lessonClears).length === 0 &&
+          profile.xp === initialProfile.xp;
+        if (looksEmpty && isBackupConfigured()) {
+          try {
+            const json = await pullBackup();
+            if (json) {
+              await store.importJson(json);
+              profile = await store.loadProfile();
+            }
+          } catch (error) {
+            console.warn("[backup] restore failed:", error);
+          }
+        }
         if (cancelled) return;
         const appStore = createAppStore(store, clock, profile);
         // Deep link from the daily reminder: ?mode=quiz opens the phone quiz.

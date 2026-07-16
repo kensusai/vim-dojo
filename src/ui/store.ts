@@ -6,6 +6,7 @@
  */
 import { create } from "zustand";
 import type { Difficulty } from "../core/difficulty";
+import { isBackupConfigured, pushBackup } from "../backup/gistBackup";
 import type { Clock, ProgressStore } from "../core/ports";
 import type { Profile } from "../core/profile";
 import {
@@ -47,6 +48,23 @@ interface AppState {
   navigate: (route: Route) => void;
 }
 
+/**
+ * Debounced cloud backup (ADR-0008): after progress changes settle, push the
+ * whole export to the configured gist. Best-effort — failures are logged, not
+ * surfaced (the local save already succeeded).
+ */
+let backupTimer: ReturnType<typeof setTimeout> | undefined;
+function scheduleBackup(store: ProgressStore) {
+  if (!isBackupConfigured()) return;
+  clearTimeout(backupTimer);
+  backupTimer = setTimeout(() => {
+    void store
+      .exportJson()
+      .then((json) => pushBackup(json))
+      .catch((error) => console.warn("[backup] push failed:", error));
+  }, 4000);
+}
+
 export function createAppStore(
   store: ProgressStore,
   clock: Clock,
@@ -75,6 +93,7 @@ export function createAppStore(
           : state.unlockedToast,
       }));
       void get().store.saveProfile(withAchievements);
+      scheduleBackup(get().store);
     },
     dismissToast: () => set({ unlockedToast: [] }),
     navigate: (route) => set({ route }),

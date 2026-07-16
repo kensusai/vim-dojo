@@ -100,4 +100,5 @@ main ──▶ 全部(配線のみ)
 | [0004](adr/0004-notification-via-external-scheduler.md) | 通知はアプリ外の スケジューラ + ntfy.sh で実現                                | 採用         |
 | [0005](adr/0005-simple-core-shell-structure.md)         | core/shell の簡易構成(4層ディレクトリの廃止)                                  | 採用         |
 | [0006](adr/0006-vim-engine-codemirror.md)               | vim エンジンに CodeMirror 6 + @replit/codemirror-vim を採用                   | 採用         |
+| [0008](adr/0008-optional-gist-backup.md)                | 進捗の任意クラウドバックアップ(GitHub Gist)                                   | 採用         |
 | [0007](adr/0007-frontend-stack.md)                      | フロントエンドスタック(TS + Vite + React + Tailwind + Motion + zustand + idb) | 採用         |

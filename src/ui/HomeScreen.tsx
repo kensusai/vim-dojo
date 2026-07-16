@@ -18,6 +18,7 @@ import { levelProgress } from "../core/progression/xp";
 import { achievementDefs } from "../core/progression/achievements";
 import { DIFFICULTIES, configFor } from "../core/difficulty";
 import { beltForLevel } from "../core/progression/belt";
+import { BackupPanel } from "./BackupPanel";
 import { SenseiSprite, SpeechBubble } from "./Sensei";
 import { useAppStore } from "./storeContext";
 
@@ -442,6 +443,8 @@ export function HomeScreen() {
             })}
           </div>
         </section>
+
+        <BackupPanel />
 
         {/* Data footer (UC6) */}
         <footer className="flex items-center justify-end gap-3 pb-4 font-mono text-xs text-cream-faint">
