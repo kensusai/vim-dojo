@@ -92,15 +92,14 @@ describe("generateDrill (R6, R19, P6)", () => {
 
   it("covers distinct drill types in one session when enough are unlocked", () => {
     const allStage2 = new Set<CommandId>(
-      ["h", "j", "k", "l", "x", "w", "f", "$", "dd", "p", "G", "ciw"].map(
+      ["h", "j", "k", "l", "x", "0", "w", "f", "$", "dd", "p", "G", "ciw"].map(
         commandId,
       ),
     );
     for (let s = 0; s < 20; s++) {
       const drill = generateDrill({ seed: `v${s}`, unlocked: allStage2 });
       const kinds = new Set(drill.map((ex) => ex.practicedCommands.join(",")));
-      // ≥5 distinct types usable, 5 exercises → all five must be different
-      // types (same-signature variants like the two mazes count as one type)
+      // 9 templates usable, 5 exercises → all five must be different types
       expect(kinds.size).toBe(5);
     }
   });

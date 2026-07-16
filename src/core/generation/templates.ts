@@ -195,125 +195,72 @@ const fJump: ExerciseTemplate = {
 };
 
 /**
- * Treasure maze: a grid of floor tiles and decorative walls with coins (*)
- * to collect — navigate with hjkl and press x on each coin (playtest
- * feedback: 文章修正以外のドリルが欲しい). Walls don't block motion (vim
- * doesn't work that way); the par is the straight hjkl tour, so cutting
- * across them is exactly the intended play.
+ * Debug sweep: a short block of real code with a stray junk char hidden in a
+ * few lines — hjkl down to each line and across to the junk, then x it out
+ * (playtest feedback: 壁のある迷路は vim の移動モデルと噛み合わない/実務で使う
+ * 形の題材のほうが実践的). This is honest hjkl practice — moving a cursor
+ * through text to a precise spot and editing, which is what hjkl is actually
+ * for — with no fake "walls" that motion passes through.
+ *
+ * Par snaps to the nearer line end first, then walks in: "0 → l" from the
+ * left, "$ → h" from the right, whichever is closer. That halves the longest
+ * horizontal run (no 20× l slogs), trains h as well as l, and — because the
+ * anchor is a line end, not a preserved column — the count is exact even
+ * though code lines are ragged. Each junk sits in the interior (never the last
+ * char), so x keeps the cursor put and never pulls it back.
  */
-const treasureMaze: ExerciseTemplate = {
-  id: "treasure-maze",
-  requires: cmd("h", "j", "k", "l", "x"),
+const debugSweep: ExerciseTemplate = {
+  id: "debug-sweep",
+  requires: cmd("h", "j", "k", "l", "x", "0", "$"),
   practices: cmd("h", "j", "k", "l"),
   generate(rng, id) {
-    const rows = 5;
-    const cols = 18 + nextInt(rng, 5);
-    // scatter decorative walls (~22%), keep the start tile clear
-    const grid: string[][] = Array.from({ length: rows }, (_, r) =>
-      Array.from({ length: cols }, (_, c) =>
-        r === 0 && c === 0 ? "." : rng.next() < 0.22 ? "#" : ".",
-      ),
-    );
-    // One coin per row (x removes its cell and shortens that row — a second
-    // coin on the same row would shift coordinates mid-run), never in the
-    // last column (deleting the line-end would pull the cursor column back).
-    const coinRows = [0, 1, 2, 3, 4].filter(() => rng.next() < 0.8).slice(0, 3);
-    while (coinRows.length < 3) {
-      const r = nextInt(rng, rows);
-      if (!coinRows.includes(r)) coinRows.push(r);
+    const lineCount = 4 + nextInt(rng, 2); // 4–5 lines of real code
+    const clean = Array.from({ length: lineCount }, () => codeLine(rng));
+    // corrupt 3 distinct lines, one stray char each, swept top-to-bottom
+    const rows: number[] = [];
+    while (rows.length < 3) {
+      const r = nextInt(rng, lineCount);
+      if (!rows.includes(r)) rows.push(r);
     }
-    const coins: [number, number][] = coinRows.map((r) => {
-      let c = nextInt(rng, cols - 1);
-      if (r === 0 && c === 0) c = 1;
-      grid[r]![c] = "*";
-      return [r, c];
-    });
-    const initial = grid.map((row) => row.join("")).join("\n");
-    const target = grid
-      .map((row) => row.filter((cell) => cell !== "*").join(""))
-      .join("\n");
-    // hjkl tour top-to-bottom; par = its length. After x the cursor keeps its
-    // column index, and other rows are untouched, so plain Manhattan counts.
-    coins.sort(([ar], [br]) => ar - br);
+    rows.sort((a, b) => a - b);
+    const dirty = clean.slice();
+    const junkCol = new Map<number, number>();
+    for (const r of rows) {
+      const line = clean[r]!;
+      // interior insert (1..len-1): the junk is never the last char, so
+      // deleting it leaves the cursor column put for the next hop.
+      const p = 1 + nextInt(rng, line.length - 1);
+      dirty[r] = line.slice(0, p) + pick(rng, JUNK_CHARS) + line.slice(p);
+      junkCol.set(r, p);
+    }
+    const initial = dirty.join("\n");
+    const target = clean.join("\n");
+    // per target: drop to its line (j), snap to the nearer end (0 or $), walk
+    // in to the junk (l or h), delete (x). The end anchor keeps the count
+    // exact on ragged lines and picks the shorter side.
     const solution: string[] = [];
     const verifySolution: string[] = [];
     let cr = 0;
-    let cc = 0;
-    for (const [r, c] of coins) {
+    for (const r of rows) {
+      const p = junkCol.get(r)!;
+      const lastIndex = clean[r]!.length; // dirty line has one extra char
+      const fromLeft = p <= lastIndex - p;
       solution.push(
-        ...Array<string>(Math.abs(r - cr)).fill(r > cr ? "j" : "k"),
-        ...Array<string>(Math.abs(c - cc)).fill(c > cc ? "l" : "h"),
+        ...Array<string>(r - cr).fill("j"),
+        fromLeft ? "0" : "$",
+        ...Array<string>(fromLeft ? p : lastIndex - p).fill(
+          fromLeft ? "l" : "h",
+        ),
         "x",
       );
-      verifySolution.push(...String(r + 1), "G", ...String(c + 1), "|", "x");
+      verifySolution.push(...String(r + 1), "G", ...String(p + 1), "|", "x");
       cr = r;
-      cc = c;
     }
     return {
       exercise: {
         id: exerciseId(id),
-        title: "迷路の宝を全部あつめろ",
-        hint: "h j k l で * まで歩き、踏んだら x で回収。壁(#)は飾りだ — 最短距離で行け。",
-        initialBuffer: initial,
-        targetBuffer: target,
-        par: solution.length,
-        practicedCommands: this.practices,
-      },
-      solution,
-      verifySolution,
-    };
-  },
-};
-
-/**
- * Goal maze: a single GOAL tile (G) to reach, far from the start — walk there
- * with hjkl and press x to plant your flag (playtest feedback: イメージは迷路を
- * 進んで GOAL まで移動する形). Walls (#) are decoration; the par is the straight
- * down-then-across tour, so the maze is "clear a path to the goal", not "collect
- * everything". Reaching-and-x is the only buffer change, which is what makes a
- * pure-movement drill verifiable under R1 (clear = buffer matches target).
- */
-const goalMaze: ExerciseTemplate = {
-  id: "goal-maze",
-  requires: cmd("h", "j", "k", "l", "x"),
-  practices: cmd("h", "j", "k", "l"),
-  generate(rng, id) {
-    const rows = 5;
-    const cols = 18 + nextInt(rng, 5);
-    // scatter decorative walls (~22%), keep the start tile clear
-    const grid: string[][] = Array.from({ length: rows }, (_, r) =>
-      Array.from({ length: cols }, (_, c) =>
-        r === 0 && c === 0 ? "." : rng.next() < 0.22 ? "#" : ".",
-      ),
-    );
-    // One GOAL in the bottom row, near the right edge — the longest journey
-    // from the top-left start. Down-then-across, so plain Manhattan counts.
-    const gr = rows - 1;
-    const gc = cols - 1 - nextInt(rng, 4);
-    grid[gr]![gc] = "G";
-    const initial = grid.map((row) => row.join("")).join("\n");
-    // x removes the goal cell; every other row is untouched.
-    const target = grid
-      .map((row) => row.filter((cell) => cell !== "G").join(""))
-      .join("\n");
-    const solution: string[] = [
-      ...Array<string>(gr).fill("j"),
-      ...Array<string>(gc).fill("l"),
-      "x",
-    ];
-    // layout-independent replay: jump to the goal line/column, then x
-    const verifySolution = [
-      ...String(gr + 1),
-      "G",
-      ...String(gc + 1),
-      "|",
-      "x",
-    ];
-    return {
-      exercise: {
-        id: exerciseId(id),
-        title: "迷路を抜けてゴールへ",
-        hint: "h j k l で G(ゴール)まで歩き、着いたら x で踏破。壁(#)は飾りだ — 最短距離で行け。",
+        title: "コードのゴミを一掃せよ",
+        hint: "h j k l でまぎれた1文字まで動き、x で駆除。近い端(0 / $)から寄ると速い。",
         initialBuffer: initial,
         targetBuffer: target,
         par: solution.length,
@@ -497,8 +444,7 @@ export const templates: ExerciseTemplate[] = [
   duplicateLine,
   trailingChar,
   fJump,
-  treasureMaze,
-  goalMaze,
+  debugSweep,
   snakePath,
   snipe,
   lineStack,
