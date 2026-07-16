@@ -83,18 +83,34 @@ export function generateDrill(options: {
       .sort((a, b) => b.key - a.key)
       .map((entry) => entry.template);
 
+  // "Type" = the practiced-command signature, not the template id. Templates
+  // that train the same commands (e.g. the treasure maze and the goal maze are
+  // both hjkl movement) are interchangeable variants: a session picks at most
+  // one per round so it stays varied, and which variant appears rotates between
+  // sessions. Falls back to the full round once every type is already covered,
+  // so a small unlock-set still fills `count` (with repeats if it must).
+  const sigOf = (t: ExerciseTemplate) => t.practices.join(",");
   const order: ExerciseTemplate[] = [];
   while (order.length < count) {
     const round = shuffledRound();
+    const covered = new Set(order.map(sigOf));
+    const fresh: ExerciseTemplate[] = [];
+    for (const t of round) {
+      const sig = sigOf(t);
+      if (covered.has(sig)) continue;
+      covered.add(sig);
+      fresh.push(t);
+    }
+    const pool = fresh.length > 0 ? fresh : round;
     // avoid the same template twice in a row across round boundaries
     if (
       order.length > 0 &&
-      round.length > 1 &&
-      round[0]!.id === order[order.length - 1]!.id
+      pool.length > 1 &&
+      pool[0]!.id === order[order.length - 1]!.id
     ) {
-      [round[0], round[1]] = [round[1]!, round[0]!];
+      [pool[0], pool[1]] = [pool[1]!, pool[0]!];
     }
-    order.push(...round);
+    order.push(...pool);
   }
 
   return order.slice(0, count).map((template, i) => {

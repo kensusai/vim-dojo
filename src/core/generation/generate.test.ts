@@ -99,7 +99,8 @@ describe("generateDrill (R6, R19, P6)", () => {
     for (let s = 0; s < 20; s++) {
       const drill = generateDrill({ seed: `v${s}`, unlocked: allStage2 });
       const kinds = new Set(drill.map((ex) => ex.practicedCommands.join(",")));
-      // 9 templates usable, 5 exercises → all five must be different types
+      // ≥5 distinct types usable, 5 exercises → all five must be different
+      // types (same-signature variants like the two mazes count as one type)
       expect(kinds.size).toBe(5);
     }
   });

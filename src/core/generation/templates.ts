@@ -265,6 +265,66 @@ const treasureMaze: ExerciseTemplate = {
   },
 };
 
+/**
+ * Goal maze: a single GOAL tile (G) to reach, far from the start — walk there
+ * with hjkl and press x to plant your flag (playtest feedback: イメージは迷路を
+ * 進んで GOAL まで移動する形). Walls (#) are decoration; the par is the straight
+ * down-then-across tour, so the maze is "clear a path to the goal", not "collect
+ * everything". Reaching-and-x is the only buffer change, which is what makes a
+ * pure-movement drill verifiable under R1 (clear = buffer matches target).
+ */
+const goalMaze: ExerciseTemplate = {
+  id: "goal-maze",
+  requires: cmd("h", "j", "k", "l", "x"),
+  practices: cmd("h", "j", "k", "l"),
+  generate(rng, id) {
+    const rows = 5;
+    const cols = 18 + nextInt(rng, 5);
+    // scatter decorative walls (~22%), keep the start tile clear
+    const grid: string[][] = Array.from({ length: rows }, (_, r) =>
+      Array.from({ length: cols }, (_, c) =>
+        r === 0 && c === 0 ? "." : rng.next() < 0.22 ? "#" : ".",
+      ),
+    );
+    // One GOAL in the bottom row, near the right edge — the longest journey
+    // from the top-left start. Down-then-across, so plain Manhattan counts.
+    const gr = rows - 1;
+    const gc = cols - 1 - nextInt(rng, 4);
+    grid[gr]![gc] = "G";
+    const initial = grid.map((row) => row.join("")).join("\n");
+    // x removes the goal cell; every other row is untouched.
+    const target = grid
+      .map((row) => row.filter((cell) => cell !== "G").join(""))
+      .join("\n");
+    const solution: string[] = [
+      ...Array<string>(gr).fill("j"),
+      ...Array<string>(gc).fill("l"),
+      "x",
+    ];
+    // layout-independent replay: jump to the goal line/column, then x
+    const verifySolution = [
+      ...String(gr + 1),
+      "G",
+      ...String(gc + 1),
+      "|",
+      "x",
+    ];
+    return {
+      exercise: {
+        id: exerciseId(id),
+        title: "迷路を抜けてゴールへ",
+        hint: "h j k l で G(ゴール)まで歩き、着いたら x で踏破。壁(#)は飾りだ — 最短距離で行け。",
+        initialBuffer: initial,
+        targetBuffer: target,
+        par: solution.length,
+        practicedCommands: this.practices,
+      },
+      solution,
+      verifySolution,
+    };
+  },
+};
+
 /** 蛇の道: hop word to word with w and delete the marked word's brand (X). */
 const snakePath: ExerciseTemplate = {
   id: "snake-path",
@@ -438,6 +498,7 @@ export const templates: ExerciseTemplate[] = [
   trailingChar,
   fJump,
   treasureMaze,
+  goalMaze,
   snakePath,
   snipe,
   lineStack,
