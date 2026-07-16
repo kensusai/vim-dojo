@@ -17,7 +17,8 @@ export type Route =
   | { screen: "home" }
   | { screen: "lesson"; stageIndex: number; lessonIndex: number }
   | { screen: "daily" }
-  | { screen: "drill" };
+  | { screen: "drill" }
+  | { screen: "quiz" };
 
 const DIFFICULTY_KEY = "vim-dojo-difficulty";
 function loadDifficulty(): Difficulty {

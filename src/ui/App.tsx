@@ -11,6 +11,7 @@ import { AchievementToast } from "./AchievementToast";
 import { DailyScreen } from "./DailyScreen";
 import { DrillScreen } from "./DrillScreen";
 import { HomeScreen } from "./HomeScreen";
+import { QuizScreen } from "./QuizScreen";
 import { LessonScreen } from "./LessonScreen";
 
 type BootState =
@@ -33,11 +34,14 @@ export function App({
       try {
         const store = await openStore();
         const profile = await store.loadProfile();
-        if (!cancelled)
-          setBoot({
-            status: "ready",
-            appStore: createAppStore(store, clock, profile),
-          });
+        if (cancelled) return;
+        const appStore = createAppStore(store, clock, profile);
+        // Deep link from the daily reminder: ?mode=quiz opens the phone quiz.
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("mode") === "quiz") {
+          appStore.getState().navigate({ screen: "quiz" });
+        }
+        setBoot({ status: "ready", appStore });
       } catch (error) {
         if (!cancelled)
           setBoot({
@@ -96,5 +100,7 @@ function Router() {
       return <DailyScreen />;
     case "drill":
       return <DrillScreen />;
+    case "quiz":
+      return <QuizScreen />;
   }
 }

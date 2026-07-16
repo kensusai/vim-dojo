@@ -26,6 +26,6 @@ jobs:
           curl -fsS \
             -H "Title: vim-dojo" \
             -H "Tags: crossed_swords" \
-            -d "今日も一本いくぞ!! 師範が道場で待っている → https://kensusai.github.io/vim-dojo/" \
+            -d "今日も一本いくぞ!! 師範が道場で待っている → https://kensusai.github.io/vim-dojo/?mode=quiz" \
             "https://ntfy.sh/$NTFY_TOPIC" > /dev/null
           echo "Reminder sent."
