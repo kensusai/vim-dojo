@@ -6,7 +6,7 @@
  */
 import { useRef, useState } from "react";
 import { recordLearningActivity } from "../core/applyProgress";
-import { generateQuiz } from "../core/quiz";
+import { CURSOR, generateQuiz } from "../core/quiz";
 import { seededRandom } from "../core/generation/rng";
 import { stages } from "../core/curriculum/stages";
 import { playClear, playLessonComplete } from "./sound";
@@ -114,7 +114,10 @@ export function QuizScreen() {
         </span>
       </div>
 
-      <p className="mb-3 text-sm text-cream-dim">この編集をするコマンドは?</p>
+      <p className="mb-1 text-sm text-cream-dim">{question.prompt}</p>
+      <p className="mb-3 font-mono text-[10px] text-cream-faint">
+        {CURSOR} = カーソル位置
+      </p>
       <div className="mb-2 rounded border-2 border-ink bg-editor p-3 font-mono text-sm">
         <div className="mb-1 text-[10px] tracking-widest text-cream-faint">
           BEFORE
