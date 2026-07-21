@@ -115,22 +115,18 @@ export function QuizScreen() {
       </div>
 
       <p className="mb-1 text-sm text-cream-dim">{question.prompt}</p>
-      <p className="mb-3 font-mono text-[10px] text-cream-faint">
-        {CURSOR} = カーソル位置
+      <p className="mb-3 flex items-center gap-1 font-mono text-[10px] text-cream-faint">
+        <span className="bg-gold px-1 text-ink">■</span> = カーソル位置
       </p>
       <div className="mb-2 rounded border-2 border-ink bg-editor p-3 font-mono text-sm">
         <div className="mb-1 text-[10px] tracking-widest text-cream-faint">
           BEFORE
         </div>
-        <pre className="overflow-x-auto whitespace-pre-wrap break-all text-cream-dim">
-          {question.before}
-        </pre>
+        <CursorText text={question.before} className="text-cream-dim" />
         <div className="mb-1 mt-2 text-[10px] tracking-widest text-cream-faint">
           AFTER
         </div>
-        <pre className="overflow-x-auto whitespace-pre-wrap break-all text-matcha">
-          {question.after}
-        </pre>
+        <CursorText text={question.after} className="text-matcha" />
       </div>
 
       <div className="mt-4 flex flex-col gap-3">
@@ -182,6 +178,32 @@ export function QuizScreen() {
         </div>
       )}
     </Shell>
+  );
+}
+
+/**
+ * Render buffer text, drawing the {@link CURSOR} marker as a highlighted cell
+ * so a motion question (only the cursor moves) reads at a glance instead of
+ * hiding behind a stray glyph. Text with no marker renders plainly.
+ */
+function CursorText({ text, className }: { text: string; className: string }) {
+  const idx = text.indexOf(CURSOR);
+  const base = `overflow-x-auto whitespace-pre-wrap break-all ${className}`;
+  if (idx === -1) {
+    return <pre className={base}>{text}</pre>;
+  }
+  const before = text.slice(0, idx);
+  const rest = text.slice(idx + CURSOR.length);
+  // The cursor sits ON the next character; at end-of-line show a blank cell.
+  const onEol = rest.length === 0 || rest[0] === "\n";
+  const onChar = onEol ? " " : rest[0]!;
+  const after = onEol ? rest : rest.slice(1);
+  return (
+    <pre className={base}>
+      {before}
+      <span className="bg-gold text-ink">{onChar}</span>
+      {after}
+    </pre>
   );
 }
 
