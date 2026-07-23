@@ -34,6 +34,6 @@ export default defineConfig({
     // enough; switch per-file to jsdom when UI component tests arrive.
     environment: "node",
     // e2e/*.spec.ts belongs to Playwright, not Vitest.
-    include: ["src/**/*.test.ts"],
+    include: ["src/**/*.test.{ts,tsx}"],
   },
 });
