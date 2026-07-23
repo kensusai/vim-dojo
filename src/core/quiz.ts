@@ -64,9 +64,11 @@ const PROMPT: Record<QuizCategory, string> = {
 
 /**
  * The bank, in teaching order (used as the top-up order for new players).
- * Each `command` matches a lesson label in src/core/curriculum/stages.ts.
+ * Each `command` matches a lesson label in src/core/curriculum/stages.ts —
+ * exported so quiz.test.ts can enforce that invariant (a renamed lesson
+ * would otherwise silently break cleared-lesson gating).
  */
-const BANK: QuizItem[] = [
+export const BANK: QuizItem[] = [
   {
     category: "edit",
     command: "x",
@@ -182,7 +184,7 @@ const BANK: QuizItem[] = [
 ];
 
 /** The command shown on the map/quiz: the part before " — " in the title. */
-function commandLabel(title: string): string {
+export function commandLabel(title: string): string {
   return title.split(" — ")[0] ?? title;
 }
 

@@ -4,6 +4,7 @@
  * that runs after every profile change (ui/store.ts centralizes the call).
  */
 import { achievementId, type AchievementId } from "../ids";
+import { DAILY_ID_PREFIX } from "../generation/generate";
 import type { Profile } from "../profile";
 import { stages } from "../curriculum/stages";
 import { isLessonCleared } from "../curriculum/curriculum";
@@ -76,7 +77,7 @@ export const achievementDefs: AchievementDef[] = [
     name: "日課はじめ",
     description: "デイリーチャレンジを初めてクリアする",
     isSatisfied: (p) =>
-      Object.keys(p.exerciseBests).some((id) => id.startsWith("daily-")),
+      Object.keys(p.exerciseBests).some((id) => id.startsWith(DAILY_ID_PREFIX)),
   },
   {
     id: achievementId("level-5"),

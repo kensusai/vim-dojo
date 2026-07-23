@@ -42,6 +42,32 @@ describe("improveBest (R4)", () => {
     ).toBe(current);
   });
 
+  it("never downgrades the medal when a later, harder-difficulty attempt clears with fewer keys", () => {
+    // easy: gold <= floor(10 * 1.4) = 14 → 13 keys earned gold
+    const current = { medal: "gold", keystrokes: 13 } as const;
+    // normal: 12 keys is only silver (gold <= 10), but it IS fewer keys
+    const next = attempt({
+      keystrokes: 12,
+      medal: judgeMedal(10, 12, "normal"),
+    });
+    expect(next.medal).toBe("silver"); // premise of the scenario
+    expect(improveBest(current, next)).toEqual({
+      medal: "gold",
+      keystrokes: 12,
+    });
+  });
+
+  it("upgrades the medal even when the keystroke count does not improve", () => {
+    // easy widens the gold band: 13 keys on par 10 is gold there
+    const current = { medal: "silver", keystrokes: 12 } as const;
+    const next = attempt({ keystrokes: 13, medal: judgeMedal(10, 13, "easy") });
+    expect(next.medal).toBe("gold"); // premise of the scenario
+    expect(improveBest(current, next)).toEqual({
+      medal: "gold",
+      keystrokes: 12,
+    });
+  });
+
   it("ignores abandoned attempts entirely", () => {
     const current = { medal: "bronze", keystrokes: 25 } as const;
     expect(

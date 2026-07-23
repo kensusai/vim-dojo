@@ -66,6 +66,8 @@ export function stageLessonStatuses(
 }
 
 /** Whether the player may start this lesson now (R7). */
+// Not wired into a screen yet: intended for map-side gating display when the
+// lesson map starts locking rows visually (tests pin the R7 behavior).
 export function isLessonPlayable(
   profile: Profile,
   stages: Stage[],
@@ -91,9 +93,4 @@ export function unlockedCommands(
     }
   }
   return unlocked;
-}
-
-/** All exercises of a lesson use only already-unlocked commands? (R6 guard) */
-export function allExercises(stages: Stage[]): Exercise[] {
-  return stages.flatMap((s) => s.lessons.flatMap((l) => l.exercises));
 }

@@ -90,6 +90,28 @@ describe("applyDailyAttempt (R15, R8)", () => {
     expect(again.profile.exerciseBests[record.exercise.id]?.keystrokes).toBe(1);
   });
 
+  it("records the streak on the day the clear happened, not the challenge's day (R12)", () => {
+    // Opened before midnight (record is for 7/11), cleared at 0:01 on 7/12.
+    const crossMidnight = {
+      ...clearedAttempt(record),
+      playedAt: new Date("2026-07-12T00:01:00"),
+    };
+    // 7/11 is already active (e.g. a drill finished earlier that evening).
+    const profile: Profile = {
+      ...playerProfile,
+      streak: {
+        current: 1,
+        longest: 1,
+        lastActiveDate: localDate("2026-07-11"),
+        freezes: 0,
+      },
+    };
+    const outcome = applyDailyAttempt(profile, record, crossMidnight);
+    expect(outcome.streak).toEqual({ kind: "extended" });
+    expect(outcome.profile.streak.current).toBe(2);
+    expect(outcome.profile.streak.lastActiveDate).toBe(localDate("2026-07-12"));
+  });
+
   it("changes nothing for an abandoned attempt", () => {
     const outcome = applyDailyAttempt(playerProfile, record, {
       ...clearedAttempt(record),

@@ -6,7 +6,7 @@
 import { unlockedCommands } from "./curriculum/curriculum";
 import { stages } from "./curriculum/stages";
 import { generateDailyChallenge } from "./generation/generate";
-import type { LocalDate } from "./localDate";
+import { localDateOf, type LocalDate } from "./localDate";
 import type { DailyChallengeRecord } from "./ports";
 import type { Attempt } from "./practice/attempt";
 import { improveBest } from "./practice/best";
@@ -49,9 +49,12 @@ export function applyDailyAttempt(
     ? 0
     : xpFor({ kind: "dailyFirstClear", medal: attempt.medal });
   const best = improveBest(profile.exerciseBests[attempt.exerciseId], attempt);
+  // R12: the activity day is when the clear HAPPENED — record.date only
+  // scopes the challenge itself (R13/R15). Crossing midnight mid-attempt
+  // must count as the new day, or the new day stays inactive.
   const { state, outcome } = recordActivity(
     profile.streak,
-    record.date, // the challenge belongs to its date
+    localDateOf(attempt.playedAt),
   );
   return {
     profile: {

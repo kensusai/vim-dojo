@@ -1,7 +1,7 @@
 /**
- * Belt ranks (docs/domain.md: レベル→帯). A flavorful label for the player's
- * level — the martial-arts progression from white to black belt. Pure mapping
- * from level; XP/level rules live in xp.ts.
+ * Belt ranks (docs/domain.md 用語集: 帯 `Belt`). A flavorful label for the
+ * player's level — the martial-arts progression from white to black belt.
+ * Pure mapping from level; XP/level rules live in xp.ts.
  */
 const BELTS = [
   "白帯", // 1-2

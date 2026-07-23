@@ -6,6 +6,7 @@
  * boot path (docs/database.md パフォーマンス方針).
  */
 import type { CommandId } from "../ids";
+import { localDateOf, type LocalDate } from "../localDate";
 import type { Attempt } from "../practice/attempt";
 
 const WINDOW = 5;
@@ -41,19 +42,18 @@ export function weakCommands(attempts: Attempt[]): CommandId[] {
  * keystroke/par ratio isn't derivable from the log — medal quality is.)
  */
 export interface TrendPoint {
-  date: string; // YYYY-MM-DD local
+  date: LocalDate;
   score: number; // 0..3, higher is better
 }
 
 const MEDAL_SCORE = { gold: 3, silver: 2, bronze: 1 } as const;
 
+// Not wired into a screen yet: feeds the planned 腕前トレンド chart on the
+// analytics screen (tests pin the aggregation).
 export function medalTrendByDay(attempts: Attempt[]): TrendPoint[] {
-  const byDay = new Map<string, number[]>();
+  const byDay = new Map<LocalDate, number[]>();
   for (const attempt of attempts) {
-    const y = attempt.playedAt.getFullYear().toString().padStart(4, "0");
-    const m = (attempt.playedAt.getMonth() + 1).toString().padStart(2, "0");
-    const d = attempt.playedAt.getDate().toString().padStart(2, "0");
-    const day = `${y}-${m}-${d}`;
+    const day = localDateOf(attempt.playedAt);
     const scores = byDay.get(day) ?? [];
     scores.push(attempt.medal ? MEDAL_SCORE[attempt.medal] : 0);
     byDay.set(day, scores);

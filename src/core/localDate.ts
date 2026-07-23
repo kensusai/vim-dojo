@@ -9,9 +9,23 @@ export type LocalDate = string & { readonly [brand]: "LocalDate" };
 
 const LOCAL_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
+/**
+ * Is `value` a real "YYYY-MM-DD" calendar day? Shared with the storage
+ * boundary (schema.ts) so hand-edited import snapshots cannot smuggle
+ * impossible dates into daysBetween (which would silently NaN the streak
+ * math). The UTC round-trip catches shape-valid nonsense like "2026-13-40".
+ */
+export function isLocalDate(value: string): boolean {
+  if (!LOCAL_DATE_PATTERN.test(value)) return false;
+  const time = Date.parse(`${value}T12:00:00Z`);
+  return (
+    !Number.isNaN(time) && new Date(time).toISOString().slice(0, 10) === value
+  );
+}
+
 /** Parse a stored/tested literal. @throws RangeError on malformed input. */
 export function localDate(value: string): LocalDate {
-  if (!LOCAL_DATE_PATTERN.test(value)) {
+  if (!isLocalDate(value)) {
     throw new RangeError(`not a YYYY-MM-DD local date: ${value}`);
   }
   return value as LocalDate;

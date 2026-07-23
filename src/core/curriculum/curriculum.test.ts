@@ -34,7 +34,7 @@ describe("stageLessonStatuses (R7)", () => {
   });
 
   it("locks an entire stage until earlier stages are fully cleared", () => {
-    // Stage 2 has no lessons yet, but the rule still holds for stage index 1+.
+    // With only one stage-1 lesson cleared, every stage-2 lesson stays locked.
     const statuses = stageLessonStatuses(clearLessons("s1-l1-x"), stages, 1);
     expect(statuses.every((s) => s === "locked")).toBe(true);
   });

@@ -8,6 +8,14 @@ describe("localDate", () => {
     expect(() => localDate("2026-7-11")).toThrow(RangeError);
   });
 
+  it("rejects well-shaped but impossible calendar dates", () => {
+    // These used to pass the regex and then NaN out daysBetween silently.
+    expect(() => localDate("2026-13-40")).toThrow(RangeError);
+    expect(() => localDate("2026-02-29")).toThrow(RangeError); // not a leap year
+    expect(() => localDate("2026-00-10")).toThrow(RangeError);
+    expect(localDate("2024-02-29")).toBe("2024-02-29"); // leap day is real
+  });
+
   it("assigns an instant to its local calendar day (R12)", () => {
     // new Date(y, m, d, hh, mm) is constructed in the local timezone, so this
     // holds in any TZ the test runs in: 23:59 belongs to the same local day.

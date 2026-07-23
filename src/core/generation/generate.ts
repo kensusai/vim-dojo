@@ -16,9 +16,43 @@ function usableTemplates(unlocked: Set<CommandId>): ExerciseTemplate[] {
   return templates.filter((t) => t.requires.every((c) => unlocked.has(c)));
 }
 
-/** Can anything be generated for this unlock state? (UI gating) */
+/** Can anything be generated for this unlock state? Not wired into a screen
+ * yet: intended for graying out the drill/daily entry before first unlocks
+ * (tests pin the R6 behavior). */
 export function canGenerate(unlocked: Set<CommandId>): boolean {
   return usableTemplates(unlocked).length > 0;
+}
+
+/**
+ * Exercise-id prefix of daily challenges. Shared with achievements.ts, whose
+ * daily-debut check recognizes daily clears by this prefix — a lone string
+ * literal on either side would let the two drift apart silently.
+ */
+export const DAILY_ID_PREFIX = "daily-";
+
+/** domain.md 例外ケース: generated pars never fall below this — a 1–2 key
+ * exercise is instant gold and teaches nothing. */
+const MIN_PAR = 3;
+
+function generateFromTemplate(
+  rng: RandomSource,
+  template: ExerciseTemplate,
+  id: string,
+): Exercise {
+  // Reroll below MIN_PAR — drawing from the same rng stream keeps the result
+  // a pure function of the seed. The cap only guards against a template that
+  // can never reach MIN_PAR (a template bug, not bad luck).
+  for (let roll = 0; roll < 20; roll++) {
+    const generated = template.generate(rng, id);
+    if (generated.exercise.par < MIN_PAR) continue;
+    // carry the model solution so the result modal can do 答え合わせ
+    const exercise = { ...generated.exercise, solution: generated.solution };
+    assertValidExercise(exercise); // 例外ケース: 自明・解なしを構造的に排除
+    return exercise;
+  }
+  throw new Error(
+    `template ${template.id} could not reach par >= ${MIN_PAR} in 20 rolls`,
+  );
 }
 
 function generateOne(
@@ -26,12 +60,7 @@ function generateOne(
   usable: ExerciseTemplate[],
   id: string,
 ): Exercise {
-  const template = usable[nextInt(rng, usable.length)]!;
-  const generated = template.generate(rng, id);
-  // carry the model solution so the result modal can do 答え合わせ
-  const exercise = { ...generated.exercise, solution: generated.solution };
-  assertValidExercise(exercise); // 例外ケース: 自明・解なしを構造的に排除
-  return exercise;
+  return generateFromTemplate(rng, usable[nextInt(rng, usable.length)]!, id);
 }
 
 /**
@@ -44,9 +73,9 @@ export function generateDailyChallenge(
 ): DailyChallengeRecord | null {
   const usable = usableTemplates(unlocked);
   if (usable.length === 0) return null;
-  const seed = `daily-${date}`;
+  const seed = `${DAILY_ID_PREFIX}${date}`;
   const rng = seededRandom(seed);
-  const exercise = generateOne(rng, usable, `daily-${date}`);
+  const exercise = generateOne(rng, usable, `${DAILY_ID_PREFIX}${date}`);
   return { date, seed, exercise, xpGranted: false };
 }
 
@@ -97,10 +126,9 @@ export function generateDrill(options: {
     order.push(...round);
   }
 
-  return order.slice(0, count).map((template, i) => {
-    const generated = template.generate(rng, `drill-${options.seed}-${i}`);
-    const exercise = { ...generated.exercise, solution: generated.solution };
-    assertValidExercise(exercise);
-    return exercise;
-  });
+  return order
+    .slice(0, count)
+    .map((template, i) =>
+      generateFromTemplate(rng, template, `drill-${options.seed}-${i}`),
+    );
 }

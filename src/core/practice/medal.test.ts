@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { judgeMedal } from "./medal";
+import { judgeMedal, medalThresholds } from "./medal";
 
 // R3: keystrokes <= par → gold, <= ceil(par * 1.5) → silver, cleared → bronze
 describe("judgeMedal (R3)", () => {
@@ -49,5 +49,31 @@ describe("judgeMedal with difficulty", () => {
   it("defaults to normal", () => {
     expect(judgeMedal(10, 10)).toBe("gold");
     expect(judgeMedal(10, 14)).toBe("silver");
+  });
+});
+
+// The gauge / boss display must use the same lines as the judgment — this is
+// the shared source both sides call.
+describe("medalThresholds (R3)", () => {
+  it("matches the judgment lines per difficulty", () => {
+    expect(medalThresholds(10)).toEqual({ goldMax: 10, silverMax: 15 });
+    expect(medalThresholds(10, "easy")).toEqual({ goldMax: 14, silverMax: 20 });
+    expect(medalThresholds(10, "hard")).toEqual({ goldMax: 10, silverMax: 15 });
+    expect(medalThresholds(7)).toEqual({ goldMax: 7, silverMax: 11 });
+  });
+
+  it("agrees with judgeMedal at every boundary", () => {
+    for (const difficulty of ["easy", "normal", "hard"] as const) {
+      const { goldMax, silverMax } = medalThresholds(9, difficulty);
+      expect(judgeMedal(9, goldMax, difficulty)).toBe("gold");
+      expect(judgeMedal(9, goldMax + 1, difficulty)).toBe("silver");
+      expect(judgeMedal(9, silverMax, difficulty)).toBe("silver");
+      expect(judgeMedal(9, silverMax + 1, difficulty)).toBe("bronze");
+    }
+  });
+
+  it("rejects non-positive or non-integer par", () => {
+    expect(() => medalThresholds(0)).toThrow(RangeError);
+    expect(() => medalThresholds(2.5)).toThrow(RangeError);
   });
 });

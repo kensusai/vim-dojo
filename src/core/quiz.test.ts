@@ -3,7 +3,7 @@ import { stages } from "./curriculum/stages";
 import { seededRandom } from "./generation/rng";
 import { lessonId } from "./ids";
 import { initialProfile, type Profile } from "./profile";
-import { generateQuiz } from "./quiz";
+import { BANK, commandLabel, generateQuiz } from "./quiz";
 
 const cleared = (...ids: string[]): Profile => ({
   ...initialProfile,
@@ -42,4 +42,17 @@ describe("generateQuiz", () => {
     });
     expect(answers.every((a) => a === "x")).toBe(true);
   });
+});
+
+// The bank's declared invariant: every answer command IS a lesson label.
+// A renamed lesson must fail here, not silently break cleared-lesson gating.
+it("every bank command matches a lesson label in stages", () => {
+  const lessonLabels = new Set(
+    stages.flatMap((s) => s.lessons.map((l) => commandLabel(l.title))),
+  );
+  for (const item of BANK) {
+    expect(lessonLabels, `bank command "${item.command}"`).toContain(
+      item.command,
+    );
+  }
 });

@@ -44,7 +44,30 @@ describe("generateDailyChallenge (R13, R14)", () => {
       expect(record!.exercise.initialBuffer).not.toBe(
         record!.exercise.targetBuffer,
       );
-      expect(record!.exercise.par).toBeGreaterThanOrEqual(1);
+      // domain.md 例外ケース: par の下限。1〜2打の即金お題は出さない
+      expect(record!.exercise.par).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it("holds the par floor across a year of dailies and many drill seeds", () => {
+    for (let month = 1; month <= 12; month++) {
+      for (let day = 1; day <= 28; day++) {
+        const record = generateDailyChallenge(
+          localDate(
+            `2026-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
+          ),
+          unlockedAll,
+        );
+        expect(record!.exercise.par).toBeGreaterThanOrEqual(3);
+      }
+    }
+    for (let s = 0; s < 100; s++) {
+      for (const ex of generateDrill({
+        seed: `p${s}`,
+        unlocked: unlockedAll,
+      })) {
+        expect(ex.par).toBeGreaterThanOrEqual(3);
+      }
     }
   });
 });
@@ -56,7 +79,8 @@ describe("generateDrill (R6, R19, P6)", () => {
   });
 
   it("respects a reduced unlock set (R6)", () => {
-    // Only f and x unlocked → only the f-jump template qualifies.
+    // Only f and x unlocked → only the f-jump and snipe templates qualify,
+    // and both practice f.
     const drill = generateDrill({
       seed: "s",
       unlocked: new Set([commandId("f"), commandId("x")]),

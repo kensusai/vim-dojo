@@ -9,9 +9,9 @@
  */
 import { daysBetween, type LocalDate } from "../localDate";
 
-export const MAX_FREEZES = 2;
+const MAX_FREEZES = 2;
 /** P3: one freeze earned per this many consecutive active days. */
-export const FREEZE_REPLENISH_EVERY = 7;
+const FREEZE_REPLENISH_EVERY = 7;
 
 export interface StreakState {
   current: number;

@@ -24,7 +24,7 @@ export interface DifficultyConfig {
   showKeyLog: boolean;
 }
 
-export const DIFFICULTY_CONFIG: Record<Difficulty, DifficultyConfig> = {
+const DIFFICULTY_CONFIG: Record<Difficulty, DifficultyConfig> = {
   easy: {
     label: "やさしい",
     goldFactor: 1.4, // gold without perfect play

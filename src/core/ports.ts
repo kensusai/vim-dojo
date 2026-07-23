@@ -32,6 +32,10 @@ export interface VimEngine {
   /**
    * Subscribe to buffer changes, for the clear judgment "the moment the
    * buffer matches the target" (R1). Returns an unsubscribe function.
+   *
+   * Ordering contract: for the key that causes a change, implementations
+   * MUST emit onKeystroke before onBufferChange — the session counts the
+   * clearing key first, then judges (a zero-count judgment is a RangeError).
    */
   onBufferChange(listener: (buffer: string) => void): () => void;
 }
