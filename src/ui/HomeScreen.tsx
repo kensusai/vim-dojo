@@ -82,13 +82,13 @@ export function HomeScreen() {
           <div className="flex items-center gap-3 border-3 border-ink bg-raised px-4 py-2 shadow-[3px_3px_0_rgb(0_0_0/0.6)]">
             <span className="relative inline-block h-3 w-10 border-2 border-[#3a2b1e] bg-[#8a5a2b] after:absolute after:left-[15px] after:top-[-4px] after:h-4 after:w-1.5 after:border-2 after:border-[#3a2b1e] after:bg-[#8a5a2b] after:content-['']" />
             <div>
-              <div className="text-[10px] tracking-widest text-cream-faint">
+              <div className="text-[0.625rem] tracking-widest text-cream-faint">
                 RANK
               </div>
               <b className="text-sm">{belt}</b>
             </div>
             <div>
-              <div className="text-[10px] tracking-widest text-cream-faint">
+              <div className="text-[0.625rem] tracking-widest text-cream-faint">
                 Lv.{level}
               </div>
               <div className="flex gap-0.5">
@@ -106,7 +106,7 @@ export function HomeScreen() {
             </div>
           </div>
           <div className="flex items-center gap-1 border-3 border-ink bg-raised px-2 py-2 shadow-[3px_3px_0_rgb(0_0_0/0.6)]">
-            <span className="mr-1 text-[10px] tracking-widest text-cream-faint">
+            <span className="mr-1 text-[0.625rem] tracking-widest text-cream-faint">
               難易度
             </span>
             {DIFFICULTIES.map((d) => (
@@ -127,15 +127,15 @@ export function HomeScreen() {
           <div className="flex items-center gap-2 border-3 border-ink bg-raised px-4 py-2 shadow-[3px_3px_0_rgb(0_0_0/0.6)]">
             <span className="text-xl">🔥</span>
             <div>
-              <div className="text-[10px] tracking-widest text-cream-faint">
+              <div className="text-[0.625rem] tracking-widest text-cream-faint">
                 STREAK
               </div>
               <span className="text-xl font-black text-gold">
                 {profile.streak.current}
               </span>
-              <span className="text-[11px]"> 日</span>
+              <span className="text-[0.6875rem]"> 日</span>
               {profile.streak.freezes > 0 && (
-                <span className="ml-1 text-[11px] text-freeze">
+                <span className="ml-1 text-[0.6875rem] text-freeze">
                   ❄×{profile.streak.freezes}
                 </span>
               )}
@@ -177,7 +177,7 @@ export function HomeScreen() {
           <div aria-hidden="true" className="scene-ground" />
           <div className="relative flex flex-none flex-col items-center">
             <SenseiSprite mood="hype" size={140} />
-            <div className="mt-2 font-mono text-[10px] tracking-[0.2em] text-cream-faint">
+            <div className="mt-2 font-mono text-[0.625rem] tracking-[0.2em] text-cream-faint">
               SHIHAN &quot;GEKIATSU&quot;
             </div>
           </div>
@@ -236,7 +236,7 @@ export function HomeScreen() {
                         className="btn-chunky border-2 border-b-[6px] border-ink-bold bg-raised px-6 py-3 text-left font-mono text-xs font-extrabold text-cream-dim"
                       >
                         今日のお題にもう一度
-                        <span className="block text-[10px] font-normal text-cream-faint">
+                        <span className="block text-[0.625rem] font-normal text-cream-faint">
                           自己ベスト{" "}
                           {profile.exerciseBests[daily.exercise.id]
                             ?.keystrokes ?? "—"}{" "}
@@ -434,7 +434,7 @@ export function HomeScreen() {
                   <span className="text-2xl">{unlocked ? def.icon : "❓"}</span>
                   <div>
                     <div className="text-sm font-black">{def.name}</div>
-                    <div className="text-[10px] text-cream-faint">
+                    <div className="text-[0.625rem] text-cream-faint">
                       {def.description}
                     </div>
                   </div>
@@ -476,7 +476,19 @@ export function HomeScreen() {
   );
 
   async function exportProgress() {
-    const json = await store.exportJson();
+    let json: string;
+    try {
+      json = await store.exportJson();
+    } catch (error) {
+      // Same feedback shape as the import path — a silent rejection would
+      // leave the user thinking the download just didn't start.
+      window.alert(
+        `エクスポートに失敗しました: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return;
+    }
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");

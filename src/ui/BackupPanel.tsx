@@ -69,6 +69,9 @@ export function BackupPanel() {
       window.location.reload();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
+    } finally {
+      // Every early return above must release busy, or all three buttons
+      // stay disabled until a remount. (The reload path doesn't care.)
       setBusy(false);
     }
   };
@@ -134,7 +137,7 @@ export function BackupPanel() {
           >
             有効にする
           </button>
-          <p className="text-[10px] text-cream-faint">
+          <p className="text-[0.625rem] text-cream-faint">
             github.com → Settings → Developer settings → Personal access tokens
             で <b>gist 権限だけ</b>のトークンを作って貼る。トークンはこの端末の
             ブラウザにのみ保存され、GitHub 以外には送られない。

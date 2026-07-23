@@ -15,14 +15,14 @@ import {
 } from "react";
 import type { Attempt } from "../core/practice/attempt";
 import type { Exercise, ExerciseSource } from "../core/practice/exercise";
-import type { Medal } from "../core/practice/medal";
+import { medalThresholds, type Medal } from "../core/practice/medal";
 import {
   startPracticeSession,
   type PracticeSession,
 } from "../core/practice/session";
 import type { VimMode } from "../core/ports";
 import { levelProgress } from "../core/progression/xp";
-import { configFor } from "../core/difficulty";
+import { configFor, type Difficulty } from "../core/difficulty";
 import { SenseiHintPanel } from "./Sensei";
 import { isMuted, playClear, toggleMuted } from "./sound";
 import { useAppStore } from "./storeContext";
@@ -70,8 +70,10 @@ export function PracticePlayer({
         exercise: Exercise;
         keystrokes: number;
         showHints: boolean;
+        difficulty: Difficulty;
       }) => ReactNode);
-  /** Called once per finished attempt (cleared or abandoned via retry). */
+  /** Called once per CLEARED attempt. Abandoned retries are appended to the
+   * store internally and never reach this callback. */
   onAttemptFinished: (info: FinishedInfo) => void;
   /**
    * Renders the result modal content for a finished attempt; returning
@@ -97,7 +99,7 @@ export function PracticePlayer({
   const [recentKeys, setRecentKeys] = useState<string[]>([]);
   const [mode, setMode] = useState<VimMode>("normal");
   const [finished, setFinished] = useState<FinishedInfo | null>(null);
-  const [results, setResults] = useState<(Medal | "abandoned" | null)[]>(() =>
+  const [results, setResults] = useState<(Medal | null)[]>(() =>
     exercises.map(() => null),
   );
 
@@ -112,6 +114,15 @@ export function PracticePlayer({
   const startExercise = useCallback(() => {
     const engine = engineRef.current;
     if (!engine || !exercise) return;
+    // A still-playing session keeps its engine subscriptions and would fire
+    // onCleared alongside the new session's (double-recorded attempts). End
+    // it first, always. Giving up mid-attempt is recorded (analytics input);
+    // a zero-key abandon is noise and is discarded.
+    const previous = sessionRef.current;
+    if (previous?.state() === "playing") {
+      const abandoned = previous.abandon();
+      if (abandoned.keystrokes > 0) void store.appendAttempt(abandoned);
+    }
     setKeystrokes(0);
     setRecentKeys([]);
     setFinished(null);
@@ -129,15 +140,24 @@ export function PracticePlayer({
         rs.map((r, i) => (i === exerciseIndex ? attempt.medal : r)),
       );
       if (attempt.medal) playClear(attempt.medal);
-      // The buffer is judged: stop the editor from reacting to further keys
-      // while the result dialog is up (Enter belongs to the dialog button).
+      // The buffer is judged: freeze it (drops in-flight keys a fast typist
+      // still has queued) and drop focus so Enter belongs to the dialog.
+      engine.setEditable(false);
       engine.blur();
       const info = { attempt, exerciseIndex, isLastExercise: isLast };
       onAttemptFinishedRef.current(info);
       setFinished(info);
     });
     engine.focus();
-  }, [clock, difficulty, exercise, exerciseIndex, exercises.length, source]);
+  }, [
+    clock,
+    difficulty,
+    exercise,
+    exerciseIndex,
+    exercises.length,
+    source,
+    store,
+  ]);
 
   useEffect(() => {
     if (!hostRef.current) return;
@@ -160,21 +180,36 @@ export function PracticePlayer({
     startExercise();
   }, [startExercise]);
 
+  // Enter must ALWAYS fire the dialog's primary action. autoFocus covers the
+  // normal case, but any neutral click (the dark backdrop, the 答え合わせ
+  // text) drops focus to <body> and Enter would go nowhere — owner bug
+  // report 2026-07-23, pinned by e2e/result-dialog.spec.ts.
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!finished) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Enter") return;
+      const dialog = dialogRef.current;
+      if (!dialog || dialog.contains(document.activeElement)) return;
+      event.preventDefault();
+      dialog.querySelector("button")?.click(); // first button = primary
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [finished]);
+
   if (!exercise) return null;
 
-  const retry = () => {
-    const session = sessionRef.current;
-    if (session && session.state() === "playing" && session.keystrokes() > 0) {
-      // Giving up mid-attempt still records it (analytics input).
-      void store.appendAttempt(session.abandon());
-    }
-    startExercise();
-  };
+  // startExercise itself abandons (and records) any still-playing session.
+  const retry = startExercise;
 
   const advance = () => setExerciseIndex((i) => i + 1);
 
-  const goldLine = Math.floor(exercise.par * aids.goldFactor);
-  const silverLine = Math.ceil(exercise.par * aids.silverFactor);
+  // Same lines the judgment uses (R3) — never re-derive them here.
+  const { goldMax: goldLine, silverMax: silverLine } = medalThresholds(
+    exercise.par,
+    difficulty,
+  );
   const gaugePercent = Math.min(100, (keystrokes / silverLine) * 100);
   const parMarker = (goldLine / silverLine) * 100;
   // Which medal is still reachable — the gauge/counter change color the
@@ -210,7 +245,7 @@ export function PracticePlayer({
           <SoundToggle />
         </div>
         <div className="flex items-center gap-1" aria-label="進行">
-          <span className="mr-2 text-[10px] tracking-widest text-cream-faint">
+          <span className="mr-2 text-[0.625rem] tracking-widest text-cream-faint">
             ROUND
           </span>
           {results.map((r, i) => (
@@ -221,13 +256,11 @@ export function PracticePlayer({
                   ? "blink border-gold"
                   : r === null
                     ? "border-ink-bold bg-raised"
-                    : r === "abandoned"
-                      ? "border-shu-dark bg-shu/30"
-                      : "border-matcha-dim bg-matcha"
+                    : "border-matcha-dim bg-matcha"
               }`}
             />
           ))}
-          <span className="ml-2 text-[11px] text-cream-faint">
+          <span className="ml-2 text-[0.6875rem] text-cream-faint">
             {exerciseIndex + 1}/{exercises.length}
           </span>
         </div>
@@ -235,7 +268,7 @@ export function PracticePlayer({
 
       <div className="flex items-center justify-center gap-8 border-b-3 border-ink bg-black/35 py-3 font-mono">
         <div className="flex items-baseline gap-2">
-          <span className="text-[10px] tracking-widest text-cream-faint">
+          <span className="text-[0.625rem] tracking-widest text-cream-faint">
             KEYS
           </span>
           <motion.span
@@ -289,9 +322,9 @@ export function PracticePlayer({
         </p>
       </div>
 
-      <main className="grid flex-1 grid-cols-[1fr_400px] gap-6 px-12 pb-6 pt-4">
+      <main className="grid flex-1 grid-cols-[1fr_500px] gap-6 px-12 pb-6 pt-4">
         <section className="pixel-panel flex flex-col overflow-hidden !bg-editor">
-          <div className="flex items-center justify-between border-b-3 border-ink bg-raised px-4 py-1.5 font-mono text-[10px] tracking-widest text-cream-faint">
+          <div className="flex items-center justify-between border-b-3 border-ink bg-raised px-4 py-1.5 font-mono text-[0.625rem] tracking-widest text-cream-faint">
             <span>BUFFER</span>
             <span>VIM EMULATION</span>
           </div>
@@ -306,29 +339,34 @@ export function PracticePlayer({
 
         <aside className="flex flex-col gap-5">
           {(typeof sidePanel === "function"
-            ? sidePanel({ exercise, keystrokes, showHints: aids.showHints })
+            ? sidePanel({
+                exercise,
+                keystrokes,
+                showHints: aids.showHints,
+                difficulty,
+              })
             : sidePanel) ??
             (aids.showHints ? <SenseiHintPanel hint={exercise.hint} /> : null)}
 
           <div className="pixel-panel p-4">
-            <div className="mb-2 font-mono text-xs font-black tracking-[0.2em] text-cream-dim">
+            <div className="mb-2 font-mono text-sm font-black tracking-[0.2em] text-cream-dim">
               TARGET — この形にせよ
             </div>
-            <pre className="overflow-x-auto border-2 border-ink bg-editor p-3 font-mono text-[13px] leading-7">
+            <pre className="overflow-x-auto border-2 border-ink bg-editor p-3 font-mono text-lg leading-9">
               {exercise.targetBuffer}
             </pre>
           </div>
 
           {aids.showKeyLog && (
             <div className="pixel-panel p-4">
-              <div className="mb-2 font-mono text-xs font-black tracking-[0.2em] text-cream-dim">
+              <div className="mb-2 font-mono text-sm font-black tracking-[0.2em] text-cream-dim">
                 INPUT — 入力キー
               </div>
               <div className="flex min-h-8 flex-wrap gap-1">
                 {recentKeys.map((key, i) => (
                   <kbd
                     key={`${i}-${key}`}
-                    className="min-w-[26px] border-2 border-b-4 border-ink-bold bg-raised px-2 text-center font-mono text-sm font-bold"
+                    className="min-w-[32px] border-2 border-b-4 border-ink-bold bg-raised px-2 text-center font-mono text-lg font-bold"
                   >
                     {key === " " ? "␣" : key}
                   </kbd>
@@ -340,7 +378,7 @@ export function PracticePlayer({
           <button
             type="button"
             onClick={retry}
-            className="btn-chunky border-2 border-b-[5px] border-ink-bold bg-raised py-2.5 font-mono text-sm font-extrabold text-cream-dim"
+            className="btn-chunky border-2 border-b-[5px] border-ink-bold bg-raised py-2.5 font-mono font-extrabold text-cream-dim"
           >
             やり直す
           </button>
@@ -349,9 +387,13 @@ export function PracticePlayer({
 
       {finished && (
         <div
+          ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-label="結果"
+          // Keep keyboard focus on the primary button even when the player
+          // clicks the backdrop or non-interactive dialog text.
+          onMouseDown={(event) => event.preventDefault()}
           className="fixed inset-0 z-10 flex items-center justify-center bg-black/70"
         >
           {/* the moment of the clear: a quick gold flash behind the modal */}
@@ -360,7 +402,7 @@ export function PracticePlayer({
             initial={{ scale: 0.7, opacity: 0, y: 24 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             transition={{ type: "spring", stiffness: 420, damping: 26 }}
-            className="pixel-panel w-[560px] p-8 text-center [background:repeating-conic-gradient(from_0deg_at_50%_40%,rgb(255_210_94/0.08)_0deg_12deg,transparent_12deg_24deg),var(--color-surface)]"
+            className="pixel-panel w-[640px] p-8 text-center [background:repeating-conic-gradient(from_0deg_at_50%_40%,rgb(255_210_94/0.08)_0deg_12deg,transparent_12deg_24deg),var(--color-surface)]"
           >
             {renderResult(finished, { retry: startExercise, advance })}
             {aids.showSolution && (
@@ -400,7 +442,7 @@ export function ResultFooter({
   const { level, intoLevel, neededForNext } = levelProgress(profile.xp);
   return (
     <>
-      <div className="mt-4 flex justify-center gap-3 font-mono text-sm font-extrabold">
+      <div className="mt-4 flex justify-center gap-3 font-mono font-extrabold">
         {xpGained > 0 && (
           <span className="border-2 border-ink bg-black/40 px-3 py-1 text-gold">
             +{xpGained} XP
@@ -423,7 +465,7 @@ export function ResultFooter({
         <button
           type="button"
           onClick={onRetry}
-          className="btn-chunky flex-1 border-2 border-b-[5px] border-ink-bold bg-raised py-3 font-mono text-sm font-extrabold text-cream-dim"
+          className="btn-chunky flex-1 border-2 border-b-[5px] border-ink-bold bg-raised py-3 font-mono font-extrabold text-cream-dim"
         >
           {retryLabel}
         </button>
@@ -449,22 +491,22 @@ function SolutionReveal({
   const beat = keystrokes <= exercise.par;
   return (
     <div className="mt-5 border-t-2 border-ink pt-4 text-left">
-      <div className="mb-2 font-mono text-[10px] font-black tracking-[0.2em] text-cream-dim">
+      <div className="mb-2 font-mono text-sm font-black tracking-[0.2em] text-cream-dim">
         答え合わせ — 模範解答({exercise.par} キー)
         {beat ? " / 模範と互角以上だ!!" : ` / あなた: ${keystrokes} キー`}
       </div>
-      <div className="flex flex-wrap gap-1">
+      <div className="flex flex-wrap gap-1.5">
         {solution.map((key, i) => (
           <kbd
             key={i}
-            className="min-w-[24px] border-2 border-b-4 border-ink-bold bg-raised px-1.5 text-center font-mono text-sm font-bold text-gold"
+            className="min-w-[32px] border-2 border-b-4 border-ink-bold bg-raised px-2 text-center font-mono text-xl font-bold text-gold"
           >
             {key === "<Esc>" ? "Esc" : key === " " ? "␣" : key}
           </kbd>
         ))}
       </div>
       {exercise.hint && (
-        <p className="mt-2 text-xs text-cream-dim">🎯 {exercise.hint}</p>
+        <p className="mt-2 text-cream-dim">🎯 {exercise.hint}</p>
       )}
     </div>
   );
@@ -504,7 +546,7 @@ export function MedalHeadline({ attempt }: { attempt: Attempt }) {
         {MEDAL_WORD[attempt.medal]}
       </div>
       <div className="mt-2 text-4xl">{MEDAL_ICON[attempt.medal]}</div>
-      <div className="mt-2 font-mono text-sm text-cream-dim">
+      <div className="mt-2 font-mono text-cream-dim">
         {attempt.keystrokes} KEYS
       </div>
     </>

@@ -82,34 +82,42 @@ export function LessonScreen({
           >
             ← MAP
           </button>
-          <span className="border-2 border-ink px-2 text-[10px] tracking-widest text-cream-faint">
+          <span className="border-2 border-ink px-2 text-[0.625rem] tracking-widest text-cream-faint">
             {stages[stageIndex]?.title} · {lesson.title.split(" — ")[0]}
           </span>
         </>
       }
-      sidePanel={({ exercise, keystrokes, showHints }) =>
+      sidePanel={({ exercise, keystrokes, showHints, difficulty }) =>
         lesson.boss ? (
           <>
-            <BossPanel exercise={exercise} keystrokes={keystrokes} />
+            <BossPanel
+              exercise={exercise}
+              keystrokes={keystrokes}
+              difficulty={difficulty}
+            />
             {showHints && exercise.hint && (
               <div className="pixel-panel p-4">
-                <p className="text-sm text-cream-dim">🎯 {exercise.hint}</p>
+                <p className="text-xl leading-relaxed text-cream-dim">
+                  🎯 {exercise.hint}
+                </p>
               </div>
             )}
           </>
         ) : !showHints ? null : (
           <div className="pixel-panel p-4">
-            <div className="mb-2 flex items-center gap-2 font-mono text-xs font-black tracking-[0.2em] text-matcha">
+            <div className="mb-2 flex items-center gap-2 font-mono text-sm font-black tracking-[0.2em] text-matcha">
               <SenseiSprite size={28} /> 師範のひとこと
             </div>
-            <p className="text-sm text-cream-dim">{lesson.brief}</p>
+            <p className="text-xl leading-relaxed text-cream-dim">
+              {lesson.brief}
+            </p>
             {exercise.hint && (
-              <p className="mt-2 border-l-2 border-matcha-dim pl-2 text-sm text-cream">
+              <p className="mt-2 border-l-2 border-matcha-dim pl-2 text-xl leading-relaxed text-cream">
                 🎯 {exercise.hint}
               </p>
             )}
             {lesson.note && (
-              <p className="mt-2 border-l-2 border-ink-bold pl-2 text-xs text-cream-faint">
+              <p className="mt-2 border-l-2 border-ink-bold pl-2 text-cream-faint">
                 💡 {lesson.note}
               </p>
             )}
@@ -151,7 +159,7 @@ function LessonResult({
     <>
       <MedalHeadline attempt={info.attempt} />
       {info.isLastExercise && (
-        <div className="mt-3 flex items-center justify-center gap-2 font-mono text-sm font-black text-matcha">
+        <div className="mt-3 flex items-center justify-center gap-2 font-mono font-black text-matcha">
           <SenseiSprite mood="hype" size={40} />
           {boss ? "ボス撃破!! 皆伝だ!!" : "レッスン皆伝!! よくやった!!"}
         </div>

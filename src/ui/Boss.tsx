@@ -1,10 +1,12 @@
 /**
  * The boss (a pixel oni) for 皆伝試験 lessons: flinches on every keystroke
  * and shifts expression/taunts by medal zone (playtest request: ボスが
- * キー入力にリアクションしてほしい). Purely presentational — zones derive
- * from keystrokes vs par, same math as the gauge.
+ * キー入力にリアクションしてほしい). Purely presentational — zones come from
+ * core's medalThresholds, the same lines the gauge and the judgment use.
  */
 import { motion } from "motion/react";
+import type { Difficulty } from "../core/difficulty";
+import { medalThresholds } from "../core/practice/medal";
 import type { Exercise } from "../core/practice/exercise";
 
 type BossMood = "idle" | "worried" | "smug" | "laughing";
@@ -105,18 +107,19 @@ export function BossSprite({
 export function BossPanel({
   exercise,
   keystrokes,
+  difficulty,
 }: {
   exercise: Exercise;
   keystrokes: number;
+  difficulty: Difficulty;
 }) {
-  const par = exercise.par;
-  const silverLine = Math.ceil(par * 1.5);
+  const { goldMax, silverMax } = medalThresholds(exercise.par, difficulty);
   const mood: BossMood =
     keystrokes === 0
       ? "idle"
-      : keystrokes <= par
+      : keystrokes <= goldMax
         ? "worried"
-        : keystrokes <= silverLine
+        : keystrokes <= silverMax
           ? "smug"
           : "laughing";
   const taunt =
@@ -127,13 +130,13 @@ export function BossPanel({
         : mood === "smug"
           ? "フン、パーは守れなかったな。まだ銀はくれてやる。"
           : "フハハハ!! 手数が多いぞ!! それでも倒せはするがな!!";
-  const chance = Math.max(0, par - keystrokes);
+  const chance = Math.max(0, goldMax - keystrokes);
 
   return (
     <div className="pixel-panel border-shu-dark p-4">
       <div className="mb-2 flex items-center justify-between font-mono text-xs font-black tracking-[0.2em] text-shu">
         <span>👹 BOSS — 皆伝試験</span>
-        <span className="text-[10px] text-cream-faint">EDIT-ONI</span>
+        <span className="text-[0.625rem] text-cream-faint">EDIT-ONI</span>
       </div>
       <div className="flex items-center gap-3">
         {/* re-mounts every keystroke → the oni flinches at each key */}
@@ -156,16 +159,16 @@ export function BossPanel({
         <p className="text-sm font-bold text-cream">{taunt}</p>
       </div>
       <div className="mt-3">
-        <div className="mb-1 flex justify-between font-mono text-[10px] tracking-widest text-cream-faint">
+        <div className="mb-1 flex justify-between font-mono text-[0.625rem] tracking-widest text-cream-faint">
           <span>GOLD CHANCE</span>
           <span>
-            あと {chance} / {par}
+            あと {chance} / {goldMax}
           </span>
         </div>
         <div className="h-3 border-2 border-ink-bold bg-black">
           <div
             className="h-full bg-gold transition-[width] duration-150"
-            style={{ width: `${(chance / par) * 100}%` }}
+            style={{ width: `${(chance / goldMax) * 100}%` }}
           />
         </div>
       </div>
