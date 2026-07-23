@@ -19,10 +19,15 @@ beforeAll(installCodeMirrorDomStubs);
 const SEEDS_PER_TEMPLATE = 25;
 
 /**
- * jsdom cannot drive j/k (display-line motions need layout). Landing on line
- * n+1 via j×n or via "{n+1}G" yields the same buffer, so replays swap leading
- * j-runs for a G jump. Par still asserts against the original j-based length;
- * j itself is browser-verified (e2e/drive-m6.mjs).
+ * jsdom cannot drive j/k (display-line motions need layout), so replays swap
+ * leading j-runs for a G jump. PREMISE: j preserves the column while nG lands
+ * on the line's first NON-BLANK char — the swap is only equivalent because
+ * generated lines never start with whitespace (both land on column 0, and
+ * every solution's j-run starts at column 0). The invariant test below pins
+ * that premise; if templates ever emit indented lines, switch these replays
+ * to the "{col}|" anchoring debug-sweep already uses. Par still asserts
+ * against the original j-based length; j itself is browser-verified
+ * (e2e/drive-m6.mjs).
  */
 function replayable(solution: string[]): string[] {
   let jRun = 0;
@@ -30,6 +35,19 @@ function replayable(solution: string[]): string[] {
   if (jRun === 0) return solution;
   return [...String(jRun + 1), "G", ...solution.slice(jRun)];
 }
+
+// The premise behind replayable(): no generated line may start with blanks.
+it("generated lines never start with whitespace (j ≡ nG premise)", () => {
+  for (const template of templates) {
+    for (let s = 0; s < SEEDS_PER_TEMPLATE; s++) {
+      const rng = seededRandom(`indent-${template.id}-${s}`);
+      const { exercise } = template.generate(rng, `i-${template.id}-${s}`);
+      for (const line of exercise.initialBuffer.split("\n")) {
+        expect(line, `${template.id} seed ${s}`).not.toMatch(/^\s/);
+      }
+    }
+  }
+});
 
 describe("every template's generated exercise is solvable at par", () => {
   for (const template of templates) {

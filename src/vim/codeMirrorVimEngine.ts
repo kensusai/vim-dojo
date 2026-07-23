@@ -19,14 +19,20 @@ import type { VimEngine, VimMode } from "../core/ports";
 // whole line. Applied once, globally — Vim keymaps are engine-global state.
 Vim.map("Y", "y$", "normal");
 
-/** Keys that never count as a keystroke on their own (R2 counts real input). */
+/** Keys that never count as a keystroke on their own (R2 counts real input).
+ * Includes lock keys and the IME intermediates ("Process"/"Dead") the browser
+ * reports during composition — those would double-bill composed characters. */
 const PURE_MODIFIERS = new Set([
   "Shift",
   "Control",
   "Alt",
   "Meta",
   "CapsLock",
+  "NumLock",
+  "ScrollLock",
   "Fn",
+  "Process",
+  "Dead",
 ]);
 
 /** Engine-side extras that ui/main may use but core must not depend on. */
@@ -47,6 +53,13 @@ export interface CodeMirrorVimEngine extends VimEngine {
   /** Drop keyboard focus (call when a result dialog opens — the buffer is
    * judged and must not react to further keys). */
   blur(): void;
+  /**
+   * Freeze/unfreeze the buffer. While frozen, every buffer-mutating
+   * transaction is dropped at the state level — blur() alone is a focus-race
+   * away from letting in-flight keys edit a judged buffer (result dialog).
+   * reset() always unfreezes (a new exercise is playable by definition).
+   */
+  setEditable(editable: boolean): void;
   destroy(): void;
 }
 
@@ -54,6 +67,7 @@ export function createVimEngine(parent: Element): CodeMirrorVimEngine {
   const keystrokeListeners = new Set<(key: string) => void>();
   const bufferListeners = new Set<(buffer: string) => void>();
   let mode: VimMode = "normal";
+  let editable = true;
 
   const emitKeystroke = (key: string) => {
     for (const listener of keystrokeListeners) listener(key);
@@ -63,8 +77,17 @@ export function createVimEngine(parent: Element): CodeMirrorVimEngine {
     EditorState.create({
       doc,
       extensions: [
+        // The freeze gate (setEditable): dropping the transaction here blocks
+        // every mutation source at once — vim commands, DOM input, paste.
+        EditorState.transactionFilter.of((tr) =>
+          editable || !tr.docChanged ? tr : [],
+        ),
         // vim() must precede other keymaps so it sees keys first.
         vim(),
+        // Blockwise visual (<C-v>) is emulated with one selection range per
+        // line; without this facet CM collapses them to a single range and
+        // block edits silently apply to the last line only.
+        EditorState.allowMultipleSelections.of(true),
         // draw the insert-mode caret (without this only vim's normal-mode
         // fat cursor is visible — playtest bug)
         drawSelection({ cursorBlinkRate: 0 }), // steady caret: learners always see where they are
@@ -127,6 +150,7 @@ export function createVimEngine(parent: Element): CodeMirrorVimEngine {
       Vim.map("Y", "y$", "normal");
       view.setState(makeState(initialBuffer));
       mode = "normal";
+      editable = true;
       attachModeTracking();
     },
     currentBuffer: () => view.state.doc.toString(),
@@ -155,6 +179,9 @@ export function createVimEngine(parent: Element): CodeMirrorVimEngine {
     },
     blur() {
       view.contentDOM.blur();
+    },
+    setEditable(value: boolean) {
+      editable = value;
     },
     destroy() {
       view.dom.removeEventListener("keydown", onDomKeydown, true);

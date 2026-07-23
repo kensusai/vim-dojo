@@ -56,6 +56,38 @@ describe("engine port basics", () => {
     expect(seen).toEqual(["Escape", "g", "g", "0", "w", "d", "w"]);
   });
 
+  it("does not count lock keys or IME intermediates as keystrokes (R2)", () => {
+    engine.reset("hello");
+    const seen: string[] = [];
+    engine.onKeystroke((k) => seen.push(k));
+    // Lock keys change nothing in the buffer; Process/Dead are what the
+    // browser reports mid-IME composition — counting them would bill one
+    // extra "keystroke" per composed character (or per accidental NumLock).
+    for (const k of ["NumLock", "ScrollLock", "Process", "Dead"]) domKey(k);
+    domKey("x");
+    expect(seen).toEqual(["x"]);
+  });
+
+  it("setEditable(false) freezes the buffer against every input path", () => {
+    engine.reset("abc");
+    engine.setEditable(false);
+    engine.sendKey("x"); // programmatic path
+    expect(engine.currentBuffer()).toBe("abc");
+    domKey("x"); // DOM path (what a real keyboard hits)
+    expect(engine.currentBuffer()).toBe("abc");
+    engine.setEditable(true);
+    engine.sendKey("x");
+    expect(engine.currentBuffer()).toBe("bc");
+  });
+
+  it("reset re-enables editing after a freeze", () => {
+    engine.reset("abc");
+    engine.setEditable(false);
+    engine.reset("xyz");
+    engine.sendKey("x");
+    expect(engine.currentBuffer()).toBe("yz");
+  });
+
   it("counts keystrokes including Esc (R2)", () => {
     engine.reset("abc");
     const seen: string[] = [];
@@ -219,5 +251,57 @@ describe("stage 4: registers", () => {
     keys(["j", "y", "y"]); // unnamed register now holds "second"
     keys(['"', "a", "p"]); // paste register a below "second"
     expect(engine.currentBuffer()).toBe("first\nsecond\nfirst");
+  });
+});
+
+describe("stage 7: visual mode (v / V / <C-v>)", () => {
+  // NOTE: j/k inside visual mode are display-line motions and cannot be
+  // driven headlessly (same jsdom limit as s1-l3) — headless verification
+  // uses logical motions (2G, G); the j-based play solutions are verified
+  // in a real browser (e2e/drive-stage7.mjs).
+  it("v + motion selects charwise and d deletes the selection", () => {
+    engine.reset("foo bar baz");
+    keys(["v", "e", "d"]);
+    expect(engine.currentBuffer()).toBe(" bar baz");
+  });
+
+  it("reports visual mode while selecting and normal after the operator", () => {
+    engine.reset("abc");
+    keys(["v"]);
+    expect(engine.currentMode()).toBe("visual");
+    keys(["<Esc>"]);
+    expect(engine.currentMode()).toBe("normal");
+  });
+
+  it("V 2G d cuts whole lines and p pastes them below the cursor line", () => {
+    engine.reset("one\ntwo\nthree\nfour");
+    keys(["V", "2", "G", "d"]); // cut one+two (linewise)
+    expect(engine.currentBuffer()).toBe("three\nfour");
+    keys(["G", "p"]); // to the last line, paste below
+    expect(engine.currentBuffer()).toBe("three\nfour\none\ntwo");
+  });
+
+  it("V y p duplicates a line without cutting it", () => {
+    engine.reset("alpha\nbeta");
+    keys(["V", "y", "p"]);
+    expect(engine.currentBuffer()).toBe("alpha\nalpha\nbeta");
+  });
+
+  it("<C-v> 3G d deletes a one-column block", () => {
+    engine.reset("Xa\nXb\nXc");
+    keys(["<C-v>", "3", "G", "d"]);
+    expect(engine.currentBuffer()).toBe("a\nb\nc");
+  });
+
+  it("<C-v> 2G l d deletes a 2x2 block", () => {
+    engine.reset("XXab\nXXcd");
+    keys(["<C-v>", "2", "G", "l", "d"]);
+    expect(engine.currentBuffer()).toBe("ab\ncd");
+  });
+
+  it("<C-v> 2G y then p pastes the block after the cursor column", () => {
+    engine.reset("ab\ncd");
+    keys(["<C-v>", "2", "G", "y", "p"]);
+    expect(engine.currentBuffer()).toBe("aab\nccd");
   });
 });
