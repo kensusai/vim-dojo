@@ -3,8 +3,9 @@
  * Stage 1 is fully authored; later stages are stubs filled in future
  * milestones. Every exercise must be solvable with only the commands unlocked
  * by this lesson or earlier ones (R6), and its par equals the author's
- * verified best solution (domain.md P4) — see stages.test.ts, which replays a
- * recorded solution for each exercise and asserts it clears in exactly `par`.
+ * verified best solution (domain.md P4) — see src/vim/stageContent.test.ts,
+ * which replays a recorded solution for each exercise and asserts it clears
+ * in exactly `par`.
  */
 import { commandId, exerciseId, lessonId } from "../ids";
 import type { Exercise } from "../practice/exercise";
@@ -1684,6 +1685,8 @@ const stage4: Stage = {
 
 // Roadmap stubs (titles set; content authored in future turns). Shown on the
 // map so the journey doesn't look like it ends at 4 (owner: 4は少ない).
+// Empty stages count as cleared for gating (R7), so stage 7 opens right
+// after stage 4 until these are authored.
 const stage5: Stage = {
   id: "stage-5",
   title: "STAGE 5",
@@ -1697,4 +1700,260 @@ const stage6: Stage = {
   lessons: [],
 };
 
-export const stages: Stage[] = [stage1, stage2, stage3, stage4, stage5, stage6];
+// Stage 7 (ビジュアルの型): owner request 2026-07-23 — 複数行を V で切って
+// 移動、Ctrl-v の矩形コピー&ペーストを鍛えたい。Pars are the taught visual
+// solutions (P4 運用): an operator form can often shave a key, but the 模範
+// 解答 must demonstrate the lesson's technique. Blockwise insert (I/A) is not
+// supported by the emulator (docs/vim-coverage.md) — lessons stay on d/y/p.
+const stage7Lessons: Lesson[] = [
+  {
+    id: lessonId("s7-l1-v"),
+    title: "v — 選んでから消す",
+    brief:
+      "v で文字単位のビジュアルモード。移動で選択を広げ、d で選択範囲ごと消す。選択はカーソル位置の文字を含む。",
+    note: "選択をやめるときは Esc。",
+    unlocks: [commandId("v")],
+    exercises: [
+      ex(
+        "s7-l1-e1",
+        "余分な X をまとめて消せ",
+        "XXXhello",
+        "hello",
+        4,
+        ["v", "l"],
+        "v→l l で3文字選び、d。",
+      ),
+      ex(
+        "s7-l1-e2",
+        "先頭の単語を消せ",
+        "delete_me value",
+        "value",
+        4,
+        ["v", "e"],
+        "v→e で単語の末尾まで選んで d。残った空白は x。",
+      ),
+      ex(
+        "s7-l1-e3",
+        "まん中の単語を消せ",
+        "keep THIS_JUNK end",
+        "keep end",
+        5,
+        ["v", "w", "e"],
+        "w で単語へ、v→e→d。空白を x。",
+      ),
+      ex(
+        "s7-l1-e4",
+        "カッコごと消せ",
+        "read[OBSOLETE]me",
+        "readme",
+        6,
+        ["v", "f"],
+        "f[ で [ へ、v→f] で ] まで選んで d。",
+      ),
+    ],
+  },
+  {
+    id: lessonId("s7-l2-V"),
+    title: "V — 行ごと選ぶ",
+    brief:
+      "V は行単位のビジュアル。j で下の行へ選択を広げ、d で行ごと消す。y でコピーして p で下に貼る。",
+    unlocks: [commandId("V")],
+    exercises: [
+      ex(
+        "s7-l2-e1",
+        "この行を選んで消せ",
+        "DELETE ME\nkeep\nkeep2",
+        "keep\nkeep2",
+        2,
+        ["V"],
+        "V で行を選び、d。",
+      ),
+      ex(
+        "s7-l2-e2",
+        "2行目のゴミ行を消せ",
+        "keep\nGOMI GOMI\nkeep2",
+        "keep\nkeep2",
+        3,
+        ["V", "j"],
+        "j で降りて V→d。",
+      ),
+      ex(
+        "s7-l2-e3",
+        "上2行をまとめて消せ",
+        "trash1\ntrash2\nkeep",
+        "keep",
+        3,
+        ["V", "j"],
+        "V→j で2行選び、d。",
+      ),
+      ex(
+        "s7-l2-e4",
+        "1行目を複製せよ",
+        "task: docs\ndone",
+        "task: docs\ntask: docs\ndone",
+        3,
+        ["V", "p"],
+        "V→y→p。",
+      ),
+    ],
+  },
+  {
+    id: lessonId("s7-l3-linemove"),
+    title: "V d p — 行を切って移動",
+    brief:
+      "V で選んで d で切り取ると、行はレジスタに入る。移動して p で下に貼れば「行の移動」になる。",
+    unlocks: [],
+    exercises: [
+      ex(
+        "s7-l3-e1",
+        "2行を入れ替えよ",
+        "second\nfirst",
+        "first\nsecond",
+        3,
+        ["V", "p"],
+        "V→d で切り、そのまま p。",
+      ),
+      ex(
+        "s7-l3-e2",
+        "1行目を末尾へ送れ",
+        "move me\nkeep1\nkeep2",
+        "keep1\nkeep2\nmove me",
+        4,
+        ["V", "G", "p"],
+        "V→d→G→p。",
+      ),
+      ex(
+        "s7-l3-e3",
+        "まん中の行を末尾へ",
+        "keep\nMOVE\nend",
+        "keep\nend\nMOVE",
+        4,
+        ["V", "j", "p"],
+        "j で MOVE へ、V→d→p。",
+      ),
+      ex(
+        "s7-l3-e4",
+        "上2行を末尾へ送れ",
+        "alpha\nbeta\nrest1\nrest2",
+        "rest1\nrest2\nalpha\nbeta",
+        5,
+        ["V", "j", "G", "p"],
+        "V→j で2行選び、d→G→p。",
+      ),
+    ],
+  },
+  {
+    id: lessonId("s7-l4-ctrlv"),
+    title: "Ctrl-v — 矩形選択",
+    brief:
+      "Ctrl-v で矩形(ブロック)選択。j で下へ、l で右へ広げ、d で矩形ごと消す。複数行の同じ「列」をまとめて編集できる。",
+    unlocks: [commandId("<C-v>")],
+    exercises: [
+      ex(
+        "s7-l4-e1",
+        "行頭の X の列を消せ",
+        "Xa\nXb\nXc",
+        "a\nb\nc",
+        4,
+        ["<C-v>", "j"],
+        "Ctrl-v→j j で列を選び、d。",
+      ),
+      ex(
+        "s7-l4-e2",
+        "引用マークを外せ",
+        ">>one\n>>two",
+        "one\ntwo",
+        4,
+        ["<C-v>", "j", "l"],
+        "Ctrl-v→j→l で 2×2 を選び、d。",
+      ),
+      ex(
+        "s7-l4-e3",
+        "コメント記号の列を消せ",
+        "#a\n#b\n#c\n#d",
+        "a\nb\nc\nd",
+        3,
+        ["<C-v>", "G"],
+        "Ctrl-v→G で最終行まで選び、d。",
+      ),
+      ex(
+        "s7-l4-e4",
+        "行番号の列を消せ",
+        "12 alpha\n34 beta",
+        "alpha\nbeta",
+        5,
+        ["<C-v>", "j", "l"],
+        "Ctrl-v→j→l→l で3列選び、d。",
+      ),
+    ],
+  },
+  {
+    id: lessonId("s7-l5-ctrlv-yp"),
+    title: "Ctrl-v y p — 矩形コピー&貼り付け",
+    brief:
+      "矩形を y でコピーすると、p でカーソルの右に矩形のまま貼れる。列の複製に効く。",
+    unlocks: [],
+    exercises: [
+      ex(
+        "s7-l5-e1",
+        "先頭の列を二重にせよ",
+        "ab\ncd",
+        "aab\nccd",
+        4,
+        ["<C-v>", "p"],
+        "Ctrl-v→j で列を選び、y→p。",
+      ),
+      ex(
+        "s7-l5-e2",
+        "番号の列を二重にせよ",
+        "1x\n2y\n3z",
+        "11x\n22y\n33z",
+        4,
+        ["<C-v>", "G", "p"],
+        "Ctrl-v→G→y→p。",
+      ),
+      ex(
+        "s7-l5-e3",
+        "先頭の列を行末にも足せ",
+        "ab\ncd",
+        "aba\ncdc",
+        5,
+        ["<C-v>", "p", "$"],
+        "列を y したら $ で行末へ、p。",
+      ),
+      ex(
+        "s7-l5-e4",
+        "2列まるごと行末へ複製",
+        "no\ngo",
+        "nono\ngogo",
+        6,
+        ["<C-v>", "l", "p", "$"],
+        "Ctrl-v→j→l で 2×2 を y、$→p。",
+      ),
+    ],
+  },
+];
+
+const stage7: Stage = {
+  id: "stage-7",
+  title: "STAGE 7",
+  subtitle: "ビジュアルの型",
+  lessons: stage7Lessons,
+};
+const stage8: Stage = {
+  id: "stage-8",
+  title: "STAGE 8",
+  subtitle: "実戦 皆伝",
+  lessons: [],
+};
+
+export const stages: Stage[] = [
+  stage1,
+  stage2,
+  stage3,
+  stage4,
+  stage5,
+  stage6,
+  stage7,
+  stage8,
+];

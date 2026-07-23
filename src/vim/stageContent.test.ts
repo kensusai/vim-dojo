@@ -20,13 +20,24 @@ import { replaySolution } from "./replaySolution";
 beforeAll(installCodeMirrorDomStubs);
 
 /** Exercises whose solution needs j/k, which jsdom can't drive (no layout).
- * Verified in the browser instead (e2e/drive-m6.mjs). */
+ * Verified in the browser instead (e2e/drive-m6.mjs for stage 1,
+ * e2e/drive-stage7.mjs for stage 7 — visual-mode j is display-based too). */
 const browserOnly = new Set([
   "s1-l3-e1",
   "s1-l3-e2",
   "s1-l3-e3",
   "s1-l3-e4",
   "s1-l3-e5",
+  "s7-l2-e2",
+  "s7-l2-e3",
+  "s7-l3-e3",
+  "s7-l3-e4",
+  "s7-l4-e1",
+  "s7-l4-e2",
+  "s7-l4-e4",
+  "s7-l5-e1",
+  "s7-l5-e3",
+  "s7-l5-e4",
 ]);
 
 describe("authored content is solvable with correct pars", () => {
