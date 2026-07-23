@@ -98,7 +98,7 @@ export function DailyScreen() {
           >
             ← MAP
           </button>
-          <span className="border-2 border-ink px-2 text-[10px] tracking-widest text-gold">
+          <span className="border-2 border-ink px-2 text-[0.625rem] tracking-widest text-gold">
             TODAY&apos;S QUEST · {record.date}
           </span>
         </>

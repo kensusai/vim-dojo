@@ -115,15 +115,15 @@ export function QuizScreen() {
       </div>
 
       <p className="mb-1 text-sm text-cream-dim">{question.prompt}</p>
-      <p className="mb-3 flex items-center gap-1 font-mono text-[10px] text-cream-faint">
+      <p className="mb-3 flex items-center gap-1 font-mono text-[0.625rem] text-cream-faint">
         <span className="bg-gold px-1 text-ink">■</span> = カーソル位置
       </p>
       <div className="mb-2 rounded border-2 border-ink bg-editor p-3 font-mono text-sm">
-        <div className="mb-1 text-[10px] tracking-widest text-cream-faint">
+        <div className="mb-1 text-[0.625rem] tracking-widest text-cream-faint">
           BEFORE
         </div>
         <CursorText text={question.before} className="text-cream-dim" />
-        <div className="mb-1 mt-2 text-[10px] tracking-widest text-cream-faint">
+        <div className="mb-1 mt-2 text-[0.625rem] tracking-widest text-cream-faint">
           AFTER
         </div>
         <CursorText text={question.after} className="text-matcha" />

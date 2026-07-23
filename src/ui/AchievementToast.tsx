@@ -33,7 +33,7 @@ export function AchievementToast() {
           >
             <span className="text-3xl">{def.icon}</span>
             <div>
-              <div className="font-mono text-[10px] font-black tracking-[0.2em] text-gold">
+              <div className="font-mono text-[0.625rem] font-black tracking-[0.2em] text-gold">
                 実績解除!!
               </div>
               <div className="font-black">{def.name}</div>

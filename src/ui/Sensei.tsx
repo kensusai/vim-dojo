@@ -87,10 +87,10 @@ export function SpeechBubble({ children }: { children: React.ReactNode }) {
 export function SenseiHintPanel({ hint }: { hint?: string | undefined }) {
   return (
     <div className="pixel-panel p-4">
-      <div className="mb-2 flex items-center gap-2 font-mono text-xs font-black tracking-[0.2em] text-matcha">
+      <div className="mb-2 flex items-center gap-2 font-mono text-sm font-black tracking-[0.2em] text-matcha">
         <SenseiSprite size={28} /> 師範のひとこと
       </div>
-      <p className="text-sm text-cream-dim">
+      <p className="text-xl leading-relaxed text-cream-dim">
         {hint ??
           "バッファを TARGET と同じ形にすれば一本だ。迷ったら移動して x から始めろ。"}
       </p>

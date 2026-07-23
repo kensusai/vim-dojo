@@ -5,6 +5,9 @@
  * (案C). Keep both in sync when tuning the look.
  */
 @theme {
+  /* CAUTION: naming this color "base" makes Tailwind's `text-base` resolve to
+     this COLOR (near-black), not the font-size utility. For 1rem type, use no
+     size utility at all (1rem is the default) — never `text-base`. */
   --color-base: #12100b;
   --color-surface: #1d1912;
   --color-raised: #2b2517;
@@ -32,6 +35,13 @@
 }
 
 @layer base {
+  /* Global type scale: Tailwind text-* classes are rem-based, so this one
+     knob scales every font in the app (owner feedback 2026-07-23: 全体的に
+     文字が小さい). Arbitrary sizes must stay in rem to ride the same knob. */
+  html {
+    font-size: 125%; /* 20px base */
+  }
+
   body {
     background:
       repeating-linear-gradient(
@@ -205,7 +215,9 @@
   .editor-host .cm-editor {
     background: var(--color-editor);
     font-family: var(--font-mono);
-    font-size: 15px;
+    /* Exercises hold a handful of short lines, so the buffer can afford big
+       type — it is the screen's main reading surface (owner feedback). */
+    font-size: 1.25rem; /* ~24px; rides the html type-scale knob */
     line-height: 2;
     outline: none;
     height: 100%;
