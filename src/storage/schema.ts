@@ -6,7 +6,7 @@
  */
 import { z } from "zod";
 import { achievementId, commandId, exerciseId, lessonId } from "../core/ids";
-import { localDate } from "../core/localDate";
+import { isLocalDate, localDate } from "../core/localDate";
 import type { DailyChallengeRecord } from "../core/ports";
 import type { Attempt } from "../core/practice/attempt";
 import type { Exercise } from "../core/practice/exercise";
@@ -15,7 +15,11 @@ import type { Profile } from "../core/profile";
 export const SCHEMA_VERSION = 1;
 
 const IsoDateTime = z.iso.datetime({ offset: true, local: true });
-const LocalDateString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+// Same validation as core's LocalDate — shared so the import boundary
+// rejects impossible dates instead of letting them NaN the streak math.
+const LocalDateString = z
+  .string()
+  .refine(isLocalDate, "not a real YYYY-MM-DD local date");
 const MedalSchema = z.enum(["gold", "silver", "bronze"]);
 
 export const ProfileSchema = z.object({

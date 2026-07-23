@@ -10,6 +10,7 @@ import { localDate } from "../core/localDate";
 import type { Attempt } from "../core/practice/attempt";
 import { initialProfile, type Profile } from "../core/profile";
 import { openProgressStore } from "./indexedDbProgressStore";
+import { DB_VERSION, runMigrations } from "./migrations";
 
 let dbCounter = 0;
 const freshStore = () =>
@@ -126,4 +127,39 @@ describe("IndexedDbProgressStore", () => {
     await expect(store.importJson("not json at all")).rejects.toThrow();
     expect(await store.loadProfile()).toEqual(sampleProfile); // untouched
   });
+
+  it("rejects a snapshot from an unknown schemaVersion", async () => {
+    const source = await freshStore();
+    await source.saveProfile(sampleProfile);
+    const snapshot: Record<string, unknown> = JSON.parse(
+      await source.exportJson(),
+    ) as Record<string, unknown>;
+    snapshot.schemaVersion = 2;
+    const target = await freshStore();
+    await expect(target.importJson(JSON.stringify(snapshot))).rejects.toThrow(
+      /schemaVersion/,
+    );
+  });
+
+  it("refuses to export corrupt stored data (backup must not launder it)", async () => {
+    const store = await freshStore();
+    await store.saveProfile(sampleProfile);
+    // Corrupt the record behind the schema's back — the export must fail NOW,
+    // not years later when the only copy left is the corrupt backup.
+    const raw = await import("idb");
+    const db = await raw.openDB(`vim-dojo-test-${dbCounter}`, 1);
+    await db.put("profile", { key: "me", xp: "not-a-number" });
+    db.close();
+    await expect(store.exportJson()).rejects.toThrow();
+  });
+});
+
+it("throws on a version gap with no migration (future-version guard)", () => {
+  // db/tx are never touched: the guard throws before the first missing step
+  // would run, so opening a database is not needed to pin this behavior.
+  const noDb = null as unknown as Parameters<typeof runMigrations>[0];
+  const noTx = null as unknown as Parameters<typeof runMigrations>[3];
+  expect(() => runMigrations(noDb, DB_VERSION, DB_VERSION + 1, noTx)).toThrow(
+    /missing migration/,
+  );
 });

@@ -39,9 +39,14 @@ export function App({
         // Recovery: if local storage is empty (e.g. the browser purged
         // IndexedDB after inactivity) but a cloud backup is configured, pull
         // it back before showing a fresh start (ADR-0008).
+        // "Empty" must include the attempt log: an abandoned-only history
+        // has no XP and no clears but is still newer than any snapshot —
+        // wiping it would lose data. loadAttempts stays off the normal boot
+        // path (only runs when the profile already looks blank).
         const looksEmpty =
           Object.keys(profile.lessonClears).length === 0 &&
-          profile.xp === initialProfile.xp;
+          profile.xp === initialProfile.xp &&
+          (await store.loadAttempts()).length === 0;
         if (looksEmpty && isBackupConfigured()) {
           try {
             const json = await pullBackup();

@@ -36,6 +36,20 @@ export async function openProgressStore(options?: {
     upgrade(database, oldVersion, newVersion, tx) {
       runMigrations(database, oldVersion, newVersion, tx);
     },
+    // Multi-tab upgrade safety: without these callbacks a future DB_VERSION
+    // bump would leave the newer tab awaiting openDB forever (App shows
+    // LOADING with no error) while an older tab holds its connection open.
+    blocked() {
+      console.warn(
+        "[storage] waiting for another tab to close its older connection",
+      );
+    },
+    blocking() {
+      // We are the old connection an upgrading tab is waiting on. Closing
+      // makes this tab's next store call fail loudly instead of stalling
+      // the other tab forever — reloading this tab recovers.
+      db.close();
+    },
   });
   return new Store(db);
 }
@@ -82,18 +96,19 @@ class Store implements IndexedDbProgressStore {
       this.db.getAll("attempts"),
       this.db.getAll("dailyChallenges"),
     ]);
-    return JSON.stringify(
-      {
-        app: "vim-dojo",
-        schemaVersion: SCHEMA_VERSION,
-        exportedAt: new Date().toISOString(),
-        profile: profile ?? fromCoreProfile(initialProfile),
-        attempts,
-        dailyChallenges,
-      },
-      null,
-      2,
-    );
+    // Validate NOW, not at restore time: a corrupt record must fail the
+    // backup that would launder it, while the healthy local copy still
+    // exists — importJson rejects whole snapshots, so a bad export would
+    // otherwise surface only when it is the last copy left.
+    const snapshot = ExportSchema.parse({
+      app: "vim-dojo",
+      schemaVersion: SCHEMA_VERSION,
+      exportedAt: new Date().toISOString(),
+      profile: profile ?? fromCoreProfile(initialProfile),
+      attempts,
+      dailyChallenges,
+    });
+    return JSON.stringify(snapshot, null, 2);
   }
 
   async importJson(json: string): Promise<void> {
