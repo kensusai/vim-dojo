@@ -24,3 +24,15 @@
 - 状況: クリーンアーキテクチャプリセットが4層ディレクトリの定義を必須としているが、個人開発の SPA ではオーナーから「やりづらい・シンプルにしたい」と明確な差し戻しがあり、ADR で簡易構成(core/shell)に置換した。
 - 提案: クリーンアーキテクチャプリセットに軽量適用形(例: functional core / imperative shell の2区分)を選択肢として用意し、プロジェクト規模で選べるようにする。
 - ステータス: 反映済み(clean-architecture プリセットに軽量適用形を追加 — 小規模では「純粋コア / 副作用シェル」の2区分に簡約可、依存方向と ADR 記録は維持。rules と architecture-design フラグメント、ja/en)
+
+## 2026-07-22 | gap | skills/codebase-review(参照スキル名の不一致)
+
+- 状況: `skills/codebase-review/SKILL.md` のモードBが「バグ → `skills/bug-fix/SKILL.md`」「リファクタ → `skills/refactor/SKILL.md`」を参照するが、リポジトリに存在するのは `skills/fix-bug/` で、`skills/refactor/` は存在しない。今回の消化(/codebase-review all)では再現ファースト/挙動保存の規律を本文の記述どおりに適用して問題なかったが、参照先が dead link のまま。
+- 提案: 参照名を実在のスキル名(`skills/fix-bug/SKILL.md`)に合わせ、refactor は専用スキルを作るか参照を本文内のルール記述に置換する。
+- ステータス: 未反映
+
+## 2026-07-22 | bug | npx agent-ready check(レジストリ不在)
+
+- 状況: CLAUDE.md の指示どおり作業の区切りで `npx agent-ready check` を実行したが、npm レジストリに `agent-ready` パッケージが存在せず E404 で実行不能(2026-07-22 時点)。
+- 提案: パッケージの正しい入手経路(スコープ付き名・tarball・ローカルパス等)を CLAUDE.md に明記する。
+- ステータス: 未反映
