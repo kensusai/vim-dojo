@@ -29,8 +29,10 @@ export interface Stage {
   lessons: Lesson[];
 }
 
-/** Progress-derived status of a lesson on the world map. */
-export type LessonStatus = "cleared" | "current" | "locked";
+/** Progress-derived status of a lesson on the world map. Pure guidance:
+ * every lesson is playable at any time (R7) — "current" marks the
+ * recommended next lesson, "upcoming" the not-yet-cleared rest. */
+export type LessonStatus = "cleared" | "current" | "upcoming";
 
 /** A lesson is cleared when the profile has a clear record for it (R5). */
 export function isLessonCleared(profile: Profile, lessonId: LessonId): boolean {
@@ -38,9 +40,11 @@ export function isLessonCleared(profile: Profile, lessonId: LessonId): boolean {
 }
 
 /**
- * Status of every lesson in a stage. The first not-yet-cleared lesson (after
- * all earlier ones are cleared) is "current"; later ones are "locked" (R7).
- * A stage whose earlier stages are not all cleared is entirely locked.
+ * Status of every lesson in a stage — display guidance only, never a gate
+ * (R7). The first not-yet-cleared lesson in curriculum order is "current"
+ * (the recommended next); every other uncleared lesson is "upcoming". When
+ * an earlier stage still has uncleared lessons, this stage's uncleared
+ * lessons are all "upcoming" (the recommendation lives in that stage).
  */
 export function stageLessonStatuses(
   profile: Profile,
@@ -52,31 +56,16 @@ export function stageLessonStatuses(
   const previousStagesCleared = stages
     .slice(0, stageIndex)
     .every((s) => s.lessons.every((l) => isLessonCleared(profile, l.id)));
-  if (!previousStagesCleared) return stage.lessons.map(() => "locked");
 
   let foundCurrent = false;
   return stage.lessons.map((lesson) => {
     if (isLessonCleared(profile, lesson.id)) return "cleared";
-    if (!foundCurrent) {
+    if (previousStagesCleared && !foundCurrent) {
       foundCurrent = true;
       return "current";
     }
-    return "locked";
+    return "upcoming";
   });
-}
-
-/** Whether the player may start this lesson now (R7). */
-// Not wired into a screen yet: intended for map-side gating display when the
-// lesson map starts locking rows visually (tests pin the R7 behavior).
-export function isLessonPlayable(
-  profile: Profile,
-  stages: Stage[],
-  stageIndex: number,
-  lessonIndex: number,
-): boolean {
-  return (
-    stageLessonStatuses(profile, stages, stageIndex)[lessonIndex] !== "locked"
-  );
 }
 
 /** Commands unlocked so far, derived from clear records (R5, no separate store). */

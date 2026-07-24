@@ -350,22 +350,22 @@ export function HomeScreen() {
               </span>
               <span>
                 <span className="font-black text-gold">▶</span>{" "}
-                いまここ(次のレッスン)
+                おすすめの次レッスン
               </span>
               <span>
-                <span className="font-black">?</span> 未開放
+                <span className="font-black">?</span>{" "}
+                未クリア(どれでも挑戦できる)
               </span>
             </span>
           </div>
           <div className="flex flex-col gap-5">
             {stages.map((stage, stageIndex) => {
               const statuses = stageLessonStatuses(profile, stages, stageIndex);
-              const locked = statuses.every((s) => s === "locked");
               const empty = stage.lessons.length === 0;
               return (
                 <div
                   key={stage.id}
-                  className={`flex items-center gap-4 ${locked || empty ? "opacity-50" : ""}`}
+                  className={`flex items-center gap-4 ${empty ? "opacity-50" : ""}`}
                 >
                   <div
                     className={`w-[150px] flex-none border-3 py-2 text-center font-mono text-sm font-black shadow-[3px_3px_0_rgb(0_0_0/0.6)] ${
@@ -390,7 +390,7 @@ export function HomeScreen() {
                           key={lesson.id}
                           label={nodeLabel(lesson.title)}
                           isBoss={lesson.boss ?? false}
-                          status={statuses[lessonIndex] ?? "locked"}
+                          status={statuses[lessonIndex] ?? "upcoming"}
                           isLast={lessonIndex === stage.lessons.length - 1}
                           onClick={() =>
                             navigate({
@@ -550,11 +550,10 @@ function LessonNode({
       <span className="flex flex-col items-center gap-1">
         <button
           type="button"
-          disabled={status === "locked"}
           onClick={onClick}
-          title={`${label} — ${status === "cleared" ? "クリア済み" : status === "current" ? "次のレッスン" : "未開放"}`}
+          title={`${label} — ${status === "cleared" ? "クリア済み" : status === "current" ? "おすすめの次" : "未クリア(いつでも挑戦できる)"}`}
           aria-label={`${label} (${status})`}
-          className={`${base} ${style} ${status === "locked" ? "cursor-not-allowed" : "cursor-pointer"}`}
+          className={`${base} ${style} cursor-pointer ${status === "upcoming" ? "hover:border-cream-faint hover:text-cream" : ""}`}
         >
           {status === "cleared"
             ? "✓"
